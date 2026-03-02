@@ -1,0 +1,23 @@
+name: Project CI Check
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Check markdown files
+        run: |
+          echo "Checking markdown files..."
+          ls *.md || echo "No markdown files found"
+
+      - name: CI finished
+        run: echo "Basic CI validation completed successfully."
