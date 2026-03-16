@@ -1,23 +1,56 @@
-name: Project CI Check
+name: CI
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [main, develop]
+  push:
+    branches: [develop]
 
 jobs:
-  validate:
+  lint-typecheck:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'npm' }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run type-check
 
-      - name: Check markdown files
+  test-web:
+    name: Unit Tests — Next.js
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      AI_SERVICE_URL: http://localhost:8000
+      AI_SERVICE_SECRET: ci-test-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'npm' }
+      - run: npm ci
+      - run: npm run test --workspace=apps/web -- --run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-web
+          path: apps/web/coverage/
+
+  test-ai:
+    name: Unit Tests — Python AI Service
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install deps
         run: |
-          echo "Checking markdown files..."
-          ls *.md || echo "No markdown files found"
-
-      - name: CI finished
-        run: echo "Basic CI validation completed successfully."
+          cd apps/ai-service
+          pip install -r requirements-dev.txt
+      - name: Run pytest
+        run: |
+          cd apps/ai-service
+          pytest tests/ -v --tb=short
