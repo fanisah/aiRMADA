@@ -4,7 +4,7 @@
  * @location apps/web/src/tests/e2e/auth.spec.ts
  *
  * Jalankan: npm run test:e2e --workspace=apps/web
- * Butuh: NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY di env
+ * Butuh: NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY di env
  */
 import { test, expect } from '@playwright/test'
 

@@ -20,12 +20,8 @@ Didapat dari **Supabase Dashboard → Project → Settings → API**.
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...   # "anon public" key
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...       # "service_role" key (JANGAN expose ke client)
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable...
 ```
-
-> **Penting:** `SUPABASE_SERVICE_ROLE_KEY` hanya boleh digunakan di server-side (API routes).
-> Jangan pernah expose key ini ke browser.
 
 ### Groq API (LLM Inference)
 
@@ -92,21 +88,20 @@ WEB_APP_URL=http://localhost:3000    # Untuk konfigurasi CORS
 Untuk CI/CD pipeline berjalan, tambahkan secrets berikut di:
 **GitHub Repository → Settings → Secrets and Variables → Actions**
 
-| Secret                          | Keterangan                                             |
-| ------------------------------- | ------------------------------------------------------ |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL                                   |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key                                      |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role key                              |
-| `GROQ_API_KEY`                  | Groq API key                                           |
-| `GEMINI_API_KEY`                | Gemini API key                                         |
-| `AI_SERVICE_URL`                | URL AI service yang sudah di-deploy                    |
-| `AI_SERVICE_SECRET`             | Shared secret antara web app dan AI service            |
-| `VERCEL_TOKEN`                  | Token dari Vercel dashboard (untuk deploy-web.yml)     |
-| `VERCEL_ORG_ID`                 | Organization ID Vercel                                 |
-| `VERCEL_PROJECT_ID`             | Project ID Vercel                                      |
-| `VPS_HOST`                      | IP address VPS (untuk deploy-ai.yml, jika pakai VPS)   |
-| `VPS_USER`                      | Username SSH VPS                                       |
-| `VPS_SSH_KEY`                   | Private key SSH (isi seluruh isi file `~/.ssh/id_rsa`) |
+| Secret                                 | Keterangan                                             |
+| -------------------------------------- | ------------------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase project URL                                   |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon key                                      |
+| `GROQ_API_KEY`                         | Groq API key                                           |
+| `GEMINI_API_KEY`                       | Gemini API key                                         |
+| `AI_SERVICE_URL`                       | URL AI service yang sudah di-deploy                    |
+| `AI_SERVICE_SECRET`                    | Shared secret antara web app dan AI service            |
+| `VERCEL_TOKEN`                         | Token dari Vercel dashboard (untuk deploy-web.yml)     |
+| `VERCEL_ORG_ID`                        | Organization ID Vercel                                 |
+| `VERCEL_PROJECT_ID`                    | Project ID Vercel                                      |
+| `VPS_HOST`                             | IP address VPS (untuk deploy-ai.yml, jika pakai VPS)   |
+| `VPS_USER`                             | Username SSH VPS                                       |
+| `VPS_SSH_KEY`                          | Private key SSH (isi seluruh isi file `~/.ssh/id_rsa`) |
 
 ---
 
@@ -132,7 +127,7 @@ Token tersedia di: **Vercel Dashboard → Account Settings → Tokens**.
 ## Checklist Sebelum Menjalankan
 
 - [ ] `apps/web/.env.local` sudah dibuat dari `.env.example`
-- [ ] `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_ANON_KEY` sudah diisi
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` sudah diisi
 - [ ] `GROQ_API_KEY` atau `GEMINI_API_KEY` sudah diisi (minimal salah satu)
 - [ ] `AI_SERVICE_URL` dan `AI_SERVICE_SECRET` sudah diisi dan konsisten dengan `apps/ai-service/.env`
 - [ ] Supabase migrations sudah di-push (`supabase db push` dari `packages/database/`)
