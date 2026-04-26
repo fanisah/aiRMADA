@@ -21,8 +21,9 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@coba/types": ["../../packages/types/src"],
-      "@coba/database": ["../../packages/database/types/supabase"]
+      "@airmada/types": ["../../packages/types/src"],
+      "@airmada/mocks": ["../../packages/mocks/src"],
+      "@airmada/database": ["../../packages/database/types/supabase"]
     }
   },
   "include": [

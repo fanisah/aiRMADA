@@ -28,9 +28,10 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser()
   const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p))
 
-  if (!user && !isPublic) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
+  // TODO: Comment sementara redirect /login
+  // if (!user && !isPublic) {
+  //   return NextResponse.redirect(new URL('/login', request.url))
+  // }
   if (user && request.nextUrl.pathname === '/login') {
     return NextResponse.redirect(new URL('/overview', request.url))
   }
@@ -39,5 +40,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
