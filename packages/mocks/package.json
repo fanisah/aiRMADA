@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@airmada/mocks": "workspace:*"
+    "@airmada/types": "*"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
