@@ -22,7 +22,7 @@ export interface AiContext {
  */
 export async function buildManagerContext(_userId: string): Promise<AiContext> {
   return {
-    role: 'manager',
+    role: 'MANAGER',
     date: new Date().toISOString().split('T')[0],
     data: {
       // TODO: { kpi, active_vehicles, pending_shipments, top_anomalies }
@@ -36,7 +36,7 @@ export async function buildManagerContext(_userId: string): Promise<AiContext> {
  */
 export async function buildDispatcherContext(_userId: string): Promise<AiContext> {
   return {
-    role: 'dispatcher',
+    role: 'DISPATCHER',
     date: new Date().toISOString().split('T')[0],
     data: {
       // TODO: { today_shipments, active_drivers, pending_assignments }
@@ -50,7 +50,7 @@ export async function buildDispatcherContext(_userId: string): Promise<AiContext
  */
 export async function buildDriverContext(userId: string): Promise<AiContext> {
   return {
-    role: 'driver',
+    role: 'DRIVER',
     date: new Date().toISOString().split('T')[0],
     data: {
       driver_id: userId,
