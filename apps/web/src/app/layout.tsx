@@ -5,13 +5,13 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'aiRMADA — Fleet Management',
-  description: 'Aplikasi manajemen dan monitoring armada logistik bertenaga AI',
+  title: 'aiRMADA',
+  description: 'AI-Powered Fleet Management',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>{children}</body>
     </html>
   )
