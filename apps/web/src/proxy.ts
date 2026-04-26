@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/api/shipments/track', '/api/auth/login']
+// const PUBLIC_PATHS = ['/login', '/api/shipments/track', '/api/auth/login']
 
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({ request })
@@ -26,7 +26,7 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p))
+  // const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p))
 
   // TODO: Comment sementara redirect /login
   // if (!user && !isPublic) {

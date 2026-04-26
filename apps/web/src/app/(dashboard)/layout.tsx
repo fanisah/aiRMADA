@@ -16,7 +16,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { Route } from 'next'
-import { DUMMY_USERS, type DummyUser, type User } from '@/types'
+// import { DUMMY_USERS, type DummyUser } from '@/mocks'
 
 // ─── Tipe ────────────────────────────────────────────────────────────────────
 interface NavItem {

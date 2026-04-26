@@ -5,7 +5,7 @@
   "main": "./src/index.ts",
   "mocks": "./src/index.ts",
   "scripts": {
-    "lint": "eslint src/",
+    "lint": "eslint . -c ../../eslint.config.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

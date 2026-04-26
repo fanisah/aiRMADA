@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Route } from 'next'
+// import { Route } from 'next'
 import { useRouter } from 'next/navigation'
 import {
   Search,
@@ -9,8 +9,8 @@ import {
   Filter,
   SlidersHorizontal,
   ChevronDown,
-  Eye,
-  EyeOff,
+  // Eye,
+  // EyeOff,
   Truck,
   X,
   ArrowUpDown,
@@ -26,7 +26,7 @@ import {
   Trash2,
   Info,
 } from 'lucide-react'
-import type { Vehicle, VehicleType, VehicleFuel, VehicleStatus } from '@/types'
+import type { Vehicle, VehicleType, VehicleStatus } from '@/types'
 import { DUMMY_VEHICLES } from '@/mocks'
 
 /**
@@ -453,7 +453,11 @@ export default function FleetPage() {
   const toggleCol = (key: ColumnKey, show: boolean) => {
     setVisibleCols((prev) => {
       const next = new Set(prev)
-      show ? next.add(key) : next.delete(key)
+      if (show) {
+        next.add(key)
+      } else {
+        next.delete(key)
+      }
       return next
     })
   }
