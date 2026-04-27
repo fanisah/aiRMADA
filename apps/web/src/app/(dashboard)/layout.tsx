@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Truck,
@@ -14,6 +14,7 @@ import {
   X,
   Bell,
   ChevronRight,
+  User,
 } from 'lucide-react'
 import { Route } from 'next'
 // import { DUMMY_USERS, type DummyUser } from '@/mocks'
@@ -80,6 +81,7 @@ function NavLink({
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname()
+  const router = useRouter()
 
   return (
     <>
@@ -138,19 +140,56 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
         {/* User + Logout */}
         <div className="space-y-1 border-t border-white/5 px-3 pt-4 pb-4">
-          <div className="flex items-center gap-3 px-3 py-2">
+          <Link
+            href="/profile"
+            className={[
+              'group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors',
+              pathname === '/profile'
+                ? 'bg-white/10 text-white'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white',
+            ].join(' ')}
+          >
             {/* TODO: Ganti <div> ini dengan <Image> dari avatar_url user */}
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-600 text-xs font-bold text-white shadow-md">
+            <div
+              className={[
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-600 text-xs font-bold text-white shadow-md',
+                pathname === '/profile'
+                  ? 'ring-2 ring-orange-400'
+                  : 'group-hover:ring-2 group-hover:ring-orange-400',
+              ].join(' ')}
+            >
               {DUMMY_USER.initials}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-white">{DUMMY_USER.full_name}</p>
-              <p className="text-[10px] text-slate-500">{DUMMY_USER.role}</p>
+              <p
+                className={[
+                  'truncate text-xs font-semibold',
+                  pathname === '/profile' ? 'text-white' : 'text-white group-hover:text-orange-400',
+                ].join(' ')}
+              >
+                {DUMMY_USER.full_name}
+              </p>
+              <p
+                className={[
+                  'text-[10px]',
+                  pathname === '/profile' ? 'text-orange-400' : 'text-slate-500',
+                ].join(' ')}
+              >
+                {DUMMY_USER.role}
+              </p>
             </div>
-          </div>
-          <button className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-white/5 hover:text-red-400">
+            {pathname === '/profile' && (
+              <ChevronRight size={14} className="ml-auto text-orange-400" />
+            )}
+          </Link>
+          <button
+            className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-white/5 hover:text-red-400"
+            onClick={async () => {
+              // TODO: Add your logout logic here, e.g., await supabase.auth.signOut();
+              router.push('/login')
+            }}
+          >
             <LogOut size={16} className="shrink-0 transition-colors group-hover:text-red-400" />
-            {/* TODO: Hubungkan onClick ini ke supabase.auth.signOut() */}
             Logout
           </button>
         </div>
