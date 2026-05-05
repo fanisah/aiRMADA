@@ -1,92 +1,339 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { Edit2, Save, X } from 'lucide-react'
+
+interface UserSession {
+  user: {
+    id: string
+    full_name: string
+    short_name: string
+    role: string
+    cell_phone: string
+  }
+  email: string
+  loginTime: string
+}
+
 export default function ProfilePage() {
+  const [user, setUser] = useState<UserSession | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
+  const [formData, setFormData] = useState({
+    full_name: '',
+    short_name: '',
+    cell_phone: '',
+    role: '',
+  })
+
+  useEffect(() => {
+    const sessionData = sessionStorage.getItem('user_session')
+    if (sessionData) {
+      try {
+        const session: UserSession = JSON.parse(sessionData)
+        setUser(session)
+        setFormData({
+          full_name: session.user.full_name,
+          short_name: session.user.short_name,
+          cell_phone: session.user.cell_phone,
+          role: session.user.role,
+        })
+      } catch (error) {
+        console.error('Failed to parse user session:', error)
+      }
+    }
+    setLoading(false)
+  }, [])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSave = () => {
+    // TODO: Add API call to save changes
+    console.warn('Saving changes:', formData)
+    setIsEditing(false)
+  }
+
+  const handleCancel = () => {
+    if (user) {
+      setFormData({
+        full_name: user.user.full_name,
+        short_name: user.user.short_name,
+        cell_phone: user.user.cell_phone,
+        role: user.user.role,
+      })
+    }
+    setIsEditing(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-screen-xl space-y-6 p-5 lg:p-7">
+        <div className="animate-pulse space-y-4">
+          <div className="h-10 w-48 rounded-lg bg-slate-200" />
+          <div className="h-48 rounded-2xl bg-slate-200" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-screen-xl space-y-6 p-5 lg:p-7">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
+          <p className="font-semibold">Error loading user profile</p>
+        </div>
+      </div>
+    )
+  }
+
+  // const initials = user.user.short_name?.substring(0, 2).toUpperCase() || user.user.full_name?.substring(0, 2).toUpperCase() || 'AN'
+
   return (
-    <div className="mx-auto max-w-screen-lg space-y-6 p-6">
+    <div className="mx-auto max-w-screen-xl space-y-6 p-5 lg:p-7">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">User Profile</h1>
-        <p className="text-sm text-slate-500">Manage your account information and preferences</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 lg:text-3xl">
+            User Profile
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {isEditing ? 'Edit your account information' : 'View and manage your account'}
+          </p>
+        </div>
       </div>
 
-      {/* Card */}
-      <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        {/* Top Profile */}
-        <div className="flex items-center gap-6">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-500 text-xl font-semibold text-white">
-            AN
+      {/* Profile Card */}
+      <div className="space-y-6 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm lg:p-8">
+        {/* Profile Header Section */}
+        <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+          {/* Profile Image */}
+          <Image
+            src="/dummy/doctor.jpg"
+            alt={user.user.full_name}
+            width={80}
+            height={80}
+            className="h-20 w-20 shrink-0 rounded-full object-cover shadow-lg"
+          />
+
+          {/* Commented: Initials Avatar */}
+          {/* <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-2xl font-bold text-white shadow-lg">
+            {initials}
+          </div> */}
+
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-slate-800">{user.user.full_name}</h2>
+            <div className="mt-2 flex items-center gap-3">
+              <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                {user.user.role}
+              </span>
+              <span className="text-sm text-slate-500">ID: {user.user.id}</span>
+            </div>
           </div>
 
-          <div>
-            <h2 className="text-lg font-semibold text-slate-800">Andi Wijaya</h2>
-            <p className="text-sm text-slate-500">Manager</p>
-          </div>
-
-          <button className="ml-auto rounded-lg border px-4 py-2 text-sm hover:bg-slate-50">
-            Change Avatar
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className={[
+              'flex items-center gap-2 rounded-lg px-4 py-2.5 font-medium transition-all duration-200',
+              isEditing
+                ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+            ].join(' ')}
+          >
+            {isEditing ? (
+              <>
+                <X size={16} />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Edit2 size={16} />
+                Edit Profile
+              </>
+            )}
           </button>
         </div>
 
-        <hr />
+        <div className="border-t border-slate-100" />
 
-        {/* Form */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Full Name */}
-          <div>
-            <label className="text-sm text-slate-600">Full Name</label>
-            <input defaultValue="Andi Wijaya" className="mt-1 w-full rounded-lg border px-3 py-2" />
+        {/* Profile Information */}
+        {!isEditing ? (
+          // View Mode
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {/* Full Name */}
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Full Name
+                </p>
+                <p className="mt-2 text-lg font-semibold text-slate-800">{user.user.full_name}</p>
+              </div>
+
+              {/* Short Name */}
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Short Name
+                </p>
+                <p className="mt-2 text-lg font-semibold text-slate-800">{user.user.short_name}</p>
+              </div>
+
+              {/* Email */}
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Email Address
+                </p>
+                <p className="mt-2 text-lg font-semibold text-slate-800">{user.email}</p>
+              </div>
+
+              {/* Phone */}
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Cell Phone
+                </p>
+                <p className="mt-2 text-lg font-semibold text-slate-800">{user.user.cell_phone}</p>
+              </div>
+
+              {/* Role */}
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Role
+                </p>
+                <p className="mt-2 text-lg font-semibold text-slate-800">{user.user.role}</p>
+              </div>
+
+              {/* Member Since */}
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Member Since
+                </p>
+                <p className="mt-2 text-lg font-semibold text-slate-800">
+                  {new Date(user.loginTime).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
           </div>
+        ) : (
+          // Edit Mode
+          <form className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Full Name</label>
+                <input
+                  type="text"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleInputChange}
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                />
+              </div>
 
-          {/* Short Name */}
-          <div>
-            <label className="text-sm text-slate-600">Short Name</label>
-            <input defaultValue="ANDI" className="mt-1 w-full rounded-lg border px-3 py-2" />
-          </div>
+              {/* Short Name */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Short Name</label>
+                <input
+                  type="text"
+                  name="short_name"
+                  value={formData.short_name}
+                  onChange={handleInputChange}
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                />
+              </div>
 
-          {/* Email */}
-          <div>
-            <label className="text-sm text-slate-600">Email Address</label>
-            <input
-              defaultValue="andi@airmada.id"
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-            />
-          </div>
+              {/* Email (Read-only) */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Email Address</label>
+                <input
+                  type="email"
+                  value={user.email}
+                  disabled
+                  className="mt-2 w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-500"
+                />
+              </div>
 
-          {/* Role */}
-          <div>
-            <label className="text-sm text-slate-600">Role</label>
-            <select className="mt-1 w-full rounded-lg border px-3 py-2">
-              <option>Manager</option>
-              <option>Driver</option>
-              <option>Dispatcher</option>
-            </select>
-          </div>
+              {/* User ID (Read-only) */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">User ID</label>
+                <input
+                  type="text"
+                  value={user.user.id}
+                  disabled
+                  className="mt-2 w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-500"
+                />
+              </div>
 
-          {/* Phone */}
-          <div className="col-span-2">
-            <label className="text-sm text-slate-600">Cell Phone</label>
-            <input
-              defaultValue="+62-821-5544-7788"
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-            />
-          </div>
-        </div>
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Cell Phone</label>
+                <input
+                  type="tel"
+                  name="cell_phone"
+                  value={formData.cell_phone}
+                  onChange={handleInputChange}
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                />
+              </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3">
-          <button className="rounded-lg border px-4 py-2">Cancel</button>
-          <button className="rounded-lg bg-slate-800 px-4 py-2 text-white">Save Changes</button>
-        </div>
+              {/* Role */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Role</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none"
+                >
+                  <option value="Manager">Manager</option>
+                  <option value="Driver">Driver</option>
+                  <option value="Dispatcher">Dispatcher</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex justify-end gap-3 border-t border-slate-100 pt-6">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="rounded-lg border border-slate-200 px-6 py-2.5 font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-2.5 font-medium text-white transition-colors hover:bg-orange-600"
+              >
+                <Save size={16} />
+                Save Changes
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
-      {/* Tips */}
-      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-slate-600">
-        <p className="mb-2 font-semibold">Profile Tips</p>
-        <ul className="ml-5 list-disc space-y-1">
-          <li>Short Name is used for driver identification</li>
-          <li>Phone must include country code</li>
-          <li>Role determines access level</li>
-        </ul>
+      {/* Info Section */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 lg:p-6">
+          <h3 className="font-semibold text-blue-900">Account Information</h3>
+          <ul className="mt-3 space-y-2 text-sm text-blue-800">
+            <li>• Your User ID is unique and cannot be changed</li>
+            <li>• Email address is verified and linked to your account</li>
+            <li>• Role determines your access level and features</li>
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 lg:p-6">
+          <h3 className="font-semibold text-amber-900">Contact Information</h3>
+          <ul className="mt-3 space-y-2 text-sm text-amber-800">
+            <li>• Keep your phone number up to date</li>
+            <li>• Phone must include country code (+62)</li>
+            <li>• We use this for critical notifications</li>
+          </ul>
+        </div>
       </div>
     </div>
   )

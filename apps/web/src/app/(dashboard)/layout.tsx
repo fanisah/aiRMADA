@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -14,7 +15,6 @@ import {
   X,
   Bell,
   ChevronRight,
-  User,
 } from 'lucide-react'
 import { Route } from 'next'
 // import { DUMMY_USERS, type DummyUser } from '@/mocks'
@@ -26,6 +26,12 @@ interface NavItem {
   icon: React.ReactNode
 }
 
+interface CurrentUser {
+  initials: string
+  full_name: string
+  role: string
+}
+
 // ─── Data navigasi ────────────────────────────────────────────────────────────
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/overview', icon: <LayoutDashboard size={18} /> },
@@ -35,12 +41,32 @@ const navItems: NavItem[] = [
   { label: 'Live Routes', href: '/routes', icon: <MapPin size={18} /> },
 ]
 
-// ─── Dummy user — ganti dengan data dari Supabase Auth ───────────────────────
-// TODO: Fetch dari GET /api/auth/me dan ganti nilai di bawah ini
-const DUMMY_USER = {
-  initials: 'AN',
-  full_name: 'Andi Wijaya',
-  role: 'Manager',
+// ─── Get current logged-in user from sessionStorage ───────────────────────────
+function getCurrentUser(): CurrentUser {
+  if (typeof window === 'undefined') {
+    return { initials: 'AN', full_name: 'Andi Wijaya', role: 'Manager' }
+  }
+
+  const sessionData = sessionStorage.getItem('user_session')
+  if (sessionData) {
+    try {
+      const session = JSON.parse(sessionData)
+      const user = session.user
+      const initials =
+        user.short_name?.substring(0, 2).toUpperCase() ||
+        user.full_name?.substring(0, 2).toUpperCase() ||
+        'AN'
+      return {
+        initials,
+        full_name: user.full_name || 'User',
+        role: user.role || 'Manager',
+      }
+    } catch (error) {
+      console.error('Failed to parse user session:', error)
+    }
+  }
+
+  return { initials: 'AN', full_name: 'Andi Wijaya', role: 'Manager' }
 }
 
 // ─── Sidebar Item ─────────────────────────────────────────────────────────────
@@ -79,7 +105,15 @@ function NavLink({
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 
-function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+function Sidebar({
+  open,
+  onClose,
+  currentUser,
+}: {
+  open: boolean
+  onClose: () => void
+  currentUser: CurrentUser
+}) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -151,14 +185,22 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           >
             {/* TODO: Ganti <div> ini dengan <Image> dari avatar_url user */}
             <div
-              className={[
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-600 text-xs font-bold text-white shadow-md',
-                pathname === '/profile'
-                  ? 'ring-2 ring-orange-400'
-                  : 'group-hover:ring-2 group-hover:ring-orange-400',
-              ].join(' ')}
+              // className={[
+              //   'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-600 text-xs font-bold text-white shadow-md',
+              //   pathname === '/profile'
+              //     ? 'ring-2 ring-orange-400'
+              //     : 'group-hover:ring-2 group-hover:ring-orange-400',
+              // ].join(' ')}
+              className="flex flex-col items-start gap-6 sm:flex-row sm:items-center"
             >
-              {DUMMY_USER.initials}
+              {/* {currentUser.initials} */}
+              <Image
+                src="/dummy/doctor.jpg"
+                alt={currentUser.full_name}
+                width={80}
+                height={80}
+                className="h-8 w-8 shrink-0 rounded-full object-cover shadow-lg"
+              />
             </div>
             <div className="min-w-0">
               <p
@@ -167,7 +209,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                   pathname === '/profile' ? 'text-white' : 'text-white group-hover:text-orange-400',
                 ].join(' ')}
               >
-                {DUMMY_USER.full_name}
+                {currentUser.full_name}
               </p>
               <p
                 className={[
@@ -175,7 +217,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                   pathname === '/profile' ? 'text-orange-400' : 'text-slate-500',
                 ].join(' ')}
               >
-                {DUMMY_USER.role}
+                {currentUser.role}
               </p>
             </div>
             {pathname === '/profile' && (
@@ -200,7 +242,15 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 // ─── Topbar ───────────────────────────────────────────────────────────────────
 
-function Topbar({ onMenuClick, pageTitle }: { onMenuClick: () => void; pageTitle: string }) {
+function Topbar({
+  onMenuClick,
+  pageTitle,
+  currentUser,
+}: {
+  onMenuClick: () => void
+  pageTitle: string
+  currentUser: CurrentUser
+}) {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-6">
       <div className="flex items-center gap-3">
@@ -220,9 +270,20 @@ function Topbar({ onMenuClick, pageTitle }: { onMenuClick: () => void; pageTitle
           <Bell size={18} />
           <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-orange-500" />
         </button>
-        {/* TODO: Ganti dengan data user dari auth */}
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-600 text-xs font-bold text-white">
-          {DUMMY_USER.initials}
+        {/* Current user avatar */}
+        {/* TODO: Jika klik avatar, tampilkan current user card, ada ref ke /profile */}
+        <div
+          // className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-600 text-xs font-bold text-white"
+          className="flex flex-col items-start gap-6 sm:flex-row sm:items-center"
+        >
+          {/* {currentUser.initials} */}
+          <Image
+            src="/dummy/doctor.jpg"
+            alt={currentUser.full_name}
+            width={80}
+            height={80}
+            className="h-7 w-7 shrink-0 rounded-full object-cover shadow-lg"
+          />
         </div>
       </div>
     </header>
@@ -239,7 +300,17 @@ function Topbar({ onMenuClick, pageTitle }: { onMenuClick: () => void; pageTitle
  */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentUser, setCurrentUser] = useState<CurrentUser>({
+    initials: 'AN',
+    full_name: 'Andi Wijaya',
+    role: 'Manager',
+  })
   const pathname = usePathname()
+
+  // Get current user on mount
+  useEffect(() => {
+    setCurrentUser(getCurrentUser())
+  }, [])
 
   // Tutup sidebar saat navigasi (mobile)
   useEffect(() => {
@@ -260,11 +331,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} currentUser={currentUser} />
 
       {/* Konten utama */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar onMenuClick={() => setSidebarOpen(true)} pageTitle={pageTitle} />
+        <Topbar
+          onMenuClick={() => setSidebarOpen(true)}
+          pageTitle={pageTitle}
+          currentUser={currentUser}
+        />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
