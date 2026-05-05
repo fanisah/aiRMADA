@@ -279,23 +279,81 @@ export default function LoginPage() {
               Quick Demo Access:
             </p>
             <div className="grid gap-2">
-              {DUMMY_USERS.map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => handleQuickLogin(user)}
-                  className="group flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 text-left transition-all hover:border-[#1e293b] hover:shadow-sm"
-                >
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">{user.short_name}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
-                  </div>
-                  <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 transition-colors group-hover:bg-[#1e293b] group-hover:text-white">
-                    {user.role}
-                  </span>
-                </button>
-              ))}
+              {DUMMY_USERS.map((user) => {
+                const getRoleBadgeStyle = (role: string) => {
+                  switch (role) {
+                    case 'MANAGER':
+                      return 'bg-purple-100 text-purple-700'
+                    case 'DRIVER':
+                      return 'bg-blue-100 text-blue-700'
+                    case 'DISPATCHER':
+                      return 'bg-orange-100 text-orange-700'
+                    default:
+                      return 'bg-slate-100 text-slate-600'
+                  }
+                }
+
+                const getRoleIcon = (role: string) => {
+                  switch (role) {
+                    case 'MANAGER':
+                      return '📊'
+                    case 'DRIVER':
+                      return '🚚'
+                    case 'DISPATCHER':
+                      return '📡'
+                    default:
+                      return '👤'
+                  }
+                }
+
+                return (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => handleQuickLogin(user)}
+                    className="group flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 text-left transition-all hover:-translate-y-0.5 hover:border-[#1e293b] hover:shadow-md"
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-gray-900">{user.short_name}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </div>
+                    <span
+                      className={`ml-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${getRoleBadgeStyle(
+                        user.role
+                      )}`}
+                    >
+                      <span>{getRoleIcon(user.role)}</span>
+                      <span>{user.role}</span>
+                    </span>
+                  </button>
+                )
+              })}
             </div>
+
+            {/* Role Information */}
+            {/* <div className="mt-4 space-y-2 border-t border-gray-200 pt-4">
+              <p className="text-xs font-semibold text-gray-600">Role Descriptions:</p>
+              <div className="grid gap-2">
+                <div className="flex gap-2">
+                  <span className="text-xs">📊</span>
+                  <span className="text-xs text-gray-600">
+                    <strong>Manager:</strong> Fleet management & financial overview
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-xs">🚚</span>
+                  <span className="text-xs text-gray-600">
+                    <strong>Driver:</strong> Active deliveries & earnings tracking
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-xs">📡</span>
+                  <span className="text-xs text-gray-600">
+                    <strong>Dispatcher:</strong> Route optimization & dispatch management
+                  </span>
+                </div>
+              </div>
+            </div> */}
           </div>
         </div>
       </div>

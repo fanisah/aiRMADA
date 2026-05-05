@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Package, Calendar } from 'lucide-react'
+import { Search, Package } from 'lucide-react'
 
 type Shipment = {
   id: string
