@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { User } from '@/types'
-import { DUMMY_USERS, type DummyUser } from '@/mocks'
+import type { User } from '@airmada/types'
+import { DUMMY_USERS, type DummyUser } from '@airmada/mocks'
 
 /**
  * Halaman Login
@@ -35,45 +35,50 @@ export default function LoginPage() {
     setPassword(user.password)
   }
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
 
-    // 2. Logika Pengecekan Kredensial
-    const user = DUMMY_USERS.find((u) => u.email === email)
-
-    if (!user) {
-      setError('Email address not found. Please check and try again.')
-      return
-    }
-
-    if (user.password !== password) {
-      setError('Incorrect password. Please try again.')
-      return
-    }
-
-    // 3. Logika Sukses Login
-    const { password: _, email: __, ...userProfile } = user
-
-    // Simpan data user ke sessionStorage sebagai 'mock cookie/state'
-    sessionStorage.setItem(
-      'user_session',
-      JSON.stringify({
-        user: userProfile as User, // Berisi id, full_name, short_name, role, cell_phone
-        email: user.email, // Disimpan terpisah jika dibutuhkan untuk display
-        loginTime: new Date().toISOString(),
+    try {
+      // Call API endpoint untuk login
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       })
-    )
 
-    // Tangani Remember Me
-    if (rememberMe) {
-      sessionStorage.setItem('remembered_email', email)
-    } else {
-      sessionStorage.removeItem('remembered_email')
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Login failed. Please try again.')
+        return
+      }
+
+      // Simpan session data ke sessionStorage
+      const sessionData = JSON.stringify({
+        user: data.user as User,
+        email: data.email,
+        loginTime: data.loginTime,
+      })
+      sessionStorage.setItem('user_session', sessionData)
+
+      // Tangani Remember Me
+      if (rememberMe) {
+        localStorage.setItem('remembered_email', email)
+      } else {
+        localStorage.removeItem('remembered_email')
+      }
+
+      // Arahkan ke Dashboard dengan delay kecil untuk memastikan session sudah tersimpan
+      setTimeout(() => {
+        router.push('/overview')
+      }, 100)
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('An error occurred. Please try again.')
     }
-
-    // Arahkan ke Dashboard
-    router.push('/overview')
   }
 
   return (

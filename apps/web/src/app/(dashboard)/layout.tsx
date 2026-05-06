@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
+import {
+  usePathname,
+  // useRouter
+} from 'next/navigation'
+import { useAuth } from '@/components/auth/auth-provider'
 import {
   LayoutDashboard,
   Truck,
@@ -109,13 +113,16 @@ function Sidebar({
   open,
   onClose,
   currentUser,
+  onLogout,
 }: {
   open: boolean
   onClose: () => void
   currentUser: CurrentUser
+  onLogout: () => void
 }) {
   const pathname = usePathname()
-  const router = useRouter()
+  // TODO: uncomment router once used
+  // const router = useRouter()
 
   return (
     <>
@@ -226,9 +233,8 @@ function Sidebar({
           </Link>
           <button
             className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-white/5 hover:text-red-400"
-            onClick={async () => {
-              // TODO: Add your logout logic here, e.g., await supabase.auth.signOut();
-              router.push('/login')
+            onClick={() => {
+              onLogout()
             }}
           >
             <LogOut size={16} className="shrink-0 transition-colors group-hover:text-red-400" />
@@ -306,6 +312,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     role: 'Manager',
   })
   const pathname = usePathname()
+  const { logout, isLoading } = useAuth()
 
   // Get current user on mount
   useEffect(() => {
@@ -326,12 +333,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Periksa session di level layout (double check)
+  const [hasValidSession, setHasValidSession] = useState(false)
+
+  useEffect(() => {
+    const userSession = sessionStorage.getItem('user_session')
+    setHasValidSession(!!userSession)
+  }, [])
+
+  // Tampilkan loading state saat memeriksa autentikasi
+  // Jangan render dashboard children sampai auth verification selesai
+  if (isLoading || !hasValidSession) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-orange-400"></div>
+          <p className="mt-4 text-gray-600">Memverifikasi akses Anda...</p>
+        </div>
+      </div>
+    )
+  }
+
   const currentPage = navItems.find((item) => pathname.startsWith(item.href))
   const pageTitle = currentPage?.label ?? 'Dashboard'
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} currentUser={currentUser} />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        currentUser={currentUser}
+        onLogout={logout}
+      />
 
       {/* Konten utama */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
