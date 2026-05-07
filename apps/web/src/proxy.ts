@@ -3,7 +3,15 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Rute publik yang tidak memerlukan autentikasi
-const PUBLIC_PATHS = ['/login', '/', '/api/shipments/track', '/api/auth/login', '/api/auth/invite']
+const PUBLIC_PATHS = [
+  '/login',
+  '/register',
+  '/',
+  '/api/shipments/track',
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/invite',
+]
 
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({ request })

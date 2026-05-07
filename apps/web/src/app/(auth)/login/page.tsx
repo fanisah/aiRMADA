@@ -360,6 +360,19 @@ export default function LoginPage() {
               </div>
             </div> */}
           </div>
+
+          {/* Register Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link
+                href={'/register' as Route}
+                className="font-semibold text-[#1e293b] hover:underline"
+              >
+                Sign Up
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
