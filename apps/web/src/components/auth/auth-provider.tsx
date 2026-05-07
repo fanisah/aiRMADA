@@ -19,18 +19,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Periksa apakah user memiliki session valid
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const userSession = sessionStorage.getItem('user_session')
       const isLoginPage = pathname === '/login'
+      const isRegisterPage = pathname === '/register'
       const isPublicPage = pathname === '/'
 
+      // Check for cookie/sessionStorage mismatch (stale session from app restart)
+      const hasCookie = document.cookie.includes('airmada_session')
+      if (hasCookie && !userSession && !isLoginPage && !isRegisterPage && !isPublicPage) {
+        // Stale session detected - clear cookie and redirect to login
+        try {
+          await fetch('/api/auth/clear-session', { method: 'POST' })
+        } catch (error) {
+          console.error('Error clearing session:', error)
+        }
+        router.replace('/login')
+        setIsAuthenticated(false)
+        setIsLoading(false)
+        return
+      }
+
       // Jika tidak ada session dan bukan di halaman publik/login, redirect ke login
-      if (!userSession && !isLoginPage && !isPublicPage) {
+      if (!userSession && !isLoginPage && !isRegisterPage && !isPublicPage) {
         // Redirect segera tanpa delay
         router.replace('/login')
         setIsAuthenticated(false)
       } else if (userSession && isLoginPage) {
         // Jika sudah login tapi di halaman login, redirect ke dashboard
+        router.replace('/overview')
+        setIsAuthenticated(true)
+      } else if (userSession && isRegisterPage) {
+        // Jika sudah login tapi di halaman register, redirect ke dashboard
         router.replace('/overview')
         setIsAuthenticated(true)
       } else if (userSession) {
