@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest) {
     try {
       userSession = JSON.parse(sessionCookie.value)
     } catch (parseError) {
-      return NextResponse.json({ error: 'Invalid session data' }, { status: 401 })
+      return NextResponse.json({ error: `Invalid session data: ${parseError}` }, { status: 401 })
     }
 
     // Get update payload from request body

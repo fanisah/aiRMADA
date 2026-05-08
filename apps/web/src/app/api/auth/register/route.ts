@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     let newUser: any = null
     let sessionData: any = null
-    let requiresEmailConfirmation = false
+    let _requiresEmailConfirmation = false
 
     // ===== TRY: Supabase Registration =====
     try {
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
       // Check if email confirmation is required
       // user.confirmed_at will be null if email confirmation is required
-      requiresEmailConfirmation = !authData.user.confirmed_at
+      _requiresEmailConfirmation = !authData.user.confirmed_at
 
       // Create user profile in database
       const { data: profile, error: profileError } = await supabase

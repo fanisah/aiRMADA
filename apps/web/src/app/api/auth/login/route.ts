@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
     }
 
     let userProfile: User | null = null
-    let authEmail = email
-    let loginTime = new Date().toISOString()
+    const authEmail = email
+    const loginTime = new Date().toISOString()
 
     // ===== TRY: Supabase Authentication =====
     try {
