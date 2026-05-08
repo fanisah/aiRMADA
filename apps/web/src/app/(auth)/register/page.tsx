@@ -2,18 +2,20 @@
 
 import { Route } from 'next'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { EmailConfirmationModal } from '@/components/auth/EmailConfirmationModal'
 
 /**
  * Halaman Register
  *
  * @location apps/web/src/app/(auth)/register/page.tsx
- * TODO: Implementasi form register dengan Supabase Auth
+ * Implementasi form register dengan Supabase Auth dan email confirmation
  */
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -21,8 +23,10 @@ export default function RegisterPage() {
     confirmPassword: '',
     cellPhone: '',
   })
-  const [error, setError] = useState('')
+  const [error, setError] = useState(searchParams.get('error') || '')
   const [isLoading, setIsLoading] = useState(false)
+  const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState('')
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -59,7 +63,16 @@ export default function RegisterPage() {
         return
       }
 
-      // Store user session in sessionStorage
+      // Check if email confirmation is required
+      if (data.requiresEmailConfirmation) {
+        // Show email confirmation modal
+        setRegisteredEmail(data.email)
+        setShowEmailConfirmationModal(true)
+        setIsLoading(false)
+        return
+      }
+
+      // Store user session in sessionStorage (if no confirmation required)
       sessionStorage.setItem(
         'user_session',
         JSON.stringify({
@@ -69,9 +82,9 @@ export default function RegisterPage() {
         })
       )
 
-      // Redirect to login after brief delay
+      // Redirect to overview after brief delay (if no confirmation required)
       setTimeout(() => {
-        router.push('/login')
+        router.push('/overview')
       }, 500)
     } catch (err) {
       console.error('Register error:', err)
@@ -324,6 +337,16 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+
+      {/* Email Confirmation Modal */}
+      <EmailConfirmationModal
+        isOpen={showEmailConfirmationModal}
+        email={registeredEmail}
+        onClose={() => {
+          setShowEmailConfirmationModal(false)
+          router.push('/login')
+        }}
+      />
     </div>
   )
 }

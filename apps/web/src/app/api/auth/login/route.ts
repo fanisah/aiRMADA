@@ -3,10 +3,12 @@
  *
  * @location apps/web/src/app/api/auth/login/route.ts
  * Handles user authentication and session creation
+ * Supports: Supabase Auth (primary) + Dummy Auth (testing/tour)
  */
 import { NextResponse, type NextRequest } from 'next/server'
 import type { User } from '@airmada/types'
 import { DUMMY_USERS } from '@airmada/mocks'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,32 +19,129 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    // ===== TEMPORARY: Dummy Authentication =====
-    const user = DUMMY_USERS.find((u) => u.email === email)
+    let userProfile: User | null = null
+    let authEmail = email
+    let loginTime = new Date().toISOString()
 
-    if (!user) {
-      return NextResponse.json({ error: 'Email address not found' }, { status: 401 })
+    // ===== TRY: Supabase Authentication =====
+    try {
+      const supabase = await createClient()
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (authError) {
+        // Check for specific errors that should NOT fall back to dummy auth
+        if (authError.message?.includes('Email not confirmed')) {
+          return NextResponse.json(
+            { error: 'Please confirm your email address before logging in' },
+            { status: 403 }
+          )
+        }
+        if (authError.message?.includes('Invalid login credentials')) {
+          // Fall through to dummy auth for this specific error
+          throw new Error(authError.message)
+        }
+        // For other errors, also try dummy auth
+        throw new Error(authError.message || 'Supabase auth failed')
+      }
+
+      if (!authData.user) {
+        throw new Error('Authentication failed - no user data')
+      }
+
+      // Fetch user profile from database
+      let { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('id, full_name, short_name, role, cell_phone')
+        .eq('id', authData.user.id)
+        .single()
+
+      // If profile doesn't exist, auto-create it
+      if (profileError) {
+        console.warn('Profile not found, auto-creating...', profileError)
+        const fullName =
+          authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || 'User'
+        const shortName = fullName.split(' ')[0]
+
+        const { data: newProfile, error: createError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: authData.user.id,
+              full_name: fullName,
+              short_name: shortName,
+              role: 'DRIVER',
+              cell_phone: authData.user.user_metadata?.cell_phone || null,
+            },
+          ])
+          .select('id, full_name, short_name, role, cell_phone')
+          .single()
+
+        if (createError || !newProfile) {
+          throw new Error(
+            'Failed to create user profile: ' + (createError?.message || 'Unknown error')
+          )
+        }
+
+        profile = newProfile
+      }
+
+      if (!profile) {
+        throw new Error('User profile not found')
+      }
+
+      userProfile = {
+        id: profile.id,
+        full_name: profile.full_name,
+        short_name: profile.short_name,
+        role: profile.role,
+        cell_phone: profile.cell_phone,
+        avatar_url: '/dummy/doctor.jpg',
+      } as User
+    } catch (supabaseError) {
+      console.warn('Supabase auth failed, attempting dummy auth:', supabaseError)
+
+      // ===== FALLBACK: Dummy Authentication (for testing/tour) =====
+      const dummyUser = DUMMY_USERS.find((u) => u.email === email)
+
+      if (!dummyUser) {
+        return NextResponse.json({ error: 'Email address not found' }, { status: 401 })
+      }
+
+      if (dummyUser.password !== password) {
+        return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+      }
+
+      const { password: _, ...profile } = dummyUser
+      userProfile = {
+        ...profile,
+        avatar_url: '/dummy/doctor.jpg',
+      } as User
     }
 
-    if (user.password !== password) {
-      return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+    if (!userProfile) {
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
-    // Extract user profile (tanpa password)
-    const { password: _, ...userProfile } = user
+    // Create session object
+    const sessionData = {
+      user: userProfile,
+      email: authEmail,
+      loginTime,
+    }
 
-    // Create response dengan session data
+    // Create response
     const response = NextResponse.json(
       {
         success: true,
-        user: userProfile as User,
-        email: user.email,
-        loginTime: new Date().toISOString(),
+        ...sessionData,
       },
       { status: 200 }
     )
 
-    // Set session cookie
+    // Set session cookies
     response.cookies.set('airmada_session', 'authenticated', {
       path: '/',
       httpOnly: false,
@@ -50,48 +149,14 @@ export async function POST(req: NextRequest) {
       maxAge: 86400, // 24 hours
     })
 
-    return response
+    response.cookies.set('user_session', JSON.stringify(sessionData), {
+      path: '/',
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 86400, // 24 hours
+    })
 
-    // ===== FUTURE: Supabase Implementation =====
-    // const { createClient } = await import('@/lib/supabase/server')
-    // const supabase = await createClient()
-    //
-    // const { data, error } = await supabase.auth.signInWithPassword({
-    //   email,
-    //   password,
-    // })
-    //
-    // if (error) {
-    //   return NextResponse.json(
-    //     { error: error.message },
-    //     { status: 401 }
-    //   )
-    // }
-    //
-    // const { data: profile } = await supabase
-    //   .from('users')
-    //   .select('id, full_name, short_name, role, cell_phone')
-    //   .eq('id', data.user.id)
-    //   .single()
-    //
-    // if (!profile) {
-    //   return NextResponse.json(
-    //     { error: 'User profile not found' },
-    //     { status: 404 }
-    //   )
-    // }
-    //
-    // const response = NextResponse.json(
-    //   {
-    //     success: true,
-    //     user: profile as User,
-    //     email: data.user.email,
-    //     loginTime: new Date().toISOString(),
-    //   },
-    //   { status: 200 }
-    // )
-    //
-    // return response
+    return response
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -1,25 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
-import { Edit2, Save, X } from 'lucide-react'
-
-interface UserSession {
-  user: {
-    id: string
-    full_name: string
-    short_name: string
-    role: string
-    cell_phone: string
-  }
-  email: string
-  loginTime: string
-}
+import { Edit2, Save, X, AlertCircle } from 'lucide-react'
+import { useUserProfile } from '@/hooks/useUserProfile'
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<UserSession | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading, error, updateProfile } = useUserProfile()
   const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     full_name: '',
     short_name: '',
@@ -27,34 +17,37 @@ export default function ProfilePage() {
     role: '',
   })
 
-  useEffect(() => {
-    const sessionData = sessionStorage.getItem('user_session')
-    if (sessionData) {
-      try {
-        const session: UserSession = JSON.parse(sessionData)
-        setUser(session)
-        setFormData({
-          full_name: session.user.full_name,
-          short_name: session.user.short_name,
-          cell_phone: session.user.cell_phone,
-          role: session.user.role,
-        })
-      } catch (error) {
-        console.error('Failed to parse user session:', error)
-      }
-    }
-    setLoading(false)
-  }, [])
+  // Update form data when user data is loaded
+  if (user && formData.full_name === '') {
+    setFormData({
+      full_name: user.user.full_name,
+      short_name: user.user.short_name,
+      cell_phone: user.user.cell_phone,
+      role: user.user.role,
+    })
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSave = () => {
-    // TODO: Add API call to save changes
-    console.warn('Saving changes:', formData)
-    setIsEditing(false)
+  const handleSave = async () => {
+    try {
+      setSaveError(null)
+      setIsSaving(true)
+      await updateProfile({
+        full_name: formData.full_name,
+        short_name: formData.short_name,
+        cell_phone: formData.cell_phone,
+        role: formData.role,
+      })
+      setIsEditing(false)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save changes')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleCancel = () => {
@@ -84,7 +77,13 @@ export default function ProfilePage() {
     return (
       <div className="mx-auto max-w-screen-xl space-y-6 p-5 lg:p-7">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
-          <p className="font-semibold">Error loading user profile</p>
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">Error loading user profile</p>
+              <p className="mt-1 text-sm">{error || 'Unable to load profile data'}</p>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -218,6 +217,15 @@ export default function ProfilePage() {
         ) : (
           // Edit Mode
           <form className="space-y-6">
+            {saveError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+                <div className="flex items-start gap-3">
+                  <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                  <p className="text-sm font-medium">{saveError}</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {/* Full Name */}
               <div>
@@ -298,17 +306,28 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="rounded-lg border border-slate-200 px-6 py-2.5 font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                disabled={isSaving}
+                className="rounded-lg border border-slate-200 px-6 py-2.5 font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-2.5 font-medium text-white transition-colors hover:bg-orange-600"
+                disabled={isSaving}
+                className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-2.5 font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-orange-400"
               >
-                <Save size={16} />
-                Save Changes
+                {isSaving ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-orange-400" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Save Changes
+                  </>
+                )}
               </button>
             </div>
           </form>

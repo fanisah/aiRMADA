@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DUMMY_USERS } from '@airmada/mocks'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * POST /api/auth/register
  * Register a new user account
+ * Supports: Supabase Auth (primary) + Dummy Auth (testing/tour)
  *
  * @location apps/web/src/app/api/auth/register/route.ts
  */
@@ -31,55 +33,126 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if email already exists in dummy users (as a demo check)
-    const existingUser = DUMMY_USERS.find(
+    // Check if email already exists in dummy users (for testing)
+    const existingDummyUser = DUMMY_USERS.find(
       (user) => user.email.toLowerCase() === email.toLowerCase()
     )
 
-    if (existingUser) {
+    if (existingDummyUser) {
       return NextResponse.json(
         { success: false, error: 'Email already registered' },
         { status: 409 }
       )
     }
 
-    // TODO: In production, this would:
-    // 1. Hash the password using bcrypt or similar
-    // 2. Insert user into database via Supabase auth.signUp()
-    // 3. Create user profile in 'users' table
-    // 4. Send verification email
+    let newUser: any = null
+    let sessionData: any = null
+    let requiresEmailConfirmation = false
 
-    // For demo, create a mock user object
-    const newUser = {
-      id: `user_${Date.now()}`,
-      email,
-      full_name: fullName,
-      cell_phone: cellPhone || null,
-      role: 'DRIVER' as const, // Default role for new registrations
-      short_name: fullName.split(' ')[0],
-      avatar_url: null,
-      status: 'active' as const,
-      created_at: new Date().toISOString(),
+    // ===== TRY: Supabase Registration =====
+    try {
+      const supabase = await createClient()
+
+      // Sign up with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            cell_phone: cellPhone || null,
+          },
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
+        },
+      })
+
+      if (authError || !authData.user) {
+        throw new Error(authError?.message || 'Supabase registration failed')
+      }
+
+      // Check if email confirmation is required
+      // user.confirmed_at will be null if email confirmation is required
+      requiresEmailConfirmation = !authData.user.confirmed_at
+
+      // Create user profile in database
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .insert([
+          {
+            id: authData.user.id,
+            full_name: fullName,
+            short_name: fullName.split(' ')[0],
+            cell_phone: cellPhone || null,
+            role: 'DRIVER', // Default role
+          },
+        ])
+        .select()
+        .single()
+
+      if (profileError || !profile) {
+        throw new Error('Failed to create user profile')
+      }
+
+      newUser = {
+        id: profile.id,
+        full_name: profile.full_name,
+        short_name: profile.short_name,
+        role: profile.role,
+        cell_phone: profile.cell_phone,
+        avatar_url: '/dummy/doctor.jpg',
+      }
+
+      sessionData = {
+        user: newUser,
+        email,
+        loginTime: new Date().toISOString(),
+      }
+    } catch (supabaseError) {
+      console.warn('Supabase registration failed, creating dummy user:', supabaseError)
+
+      // ===== FALLBACK: Dummy User Creation (for testing/tour) =====
+      newUser = {
+        id: `user_${Date.now()}`,
+        full_name: fullName,
+        short_name: fullName.split(' ')[0],
+        cell_phone: cellPhone || null,
+        role: 'DRIVER',
+        avatar_url: '/dummy/doctor.jpg',
+      }
+
+      sessionData = {
+        user: newUser,
+        email,
+        loginTime: new Date().toISOString(),
+      }
     }
 
-    // Set session cookie
+    if (!newUser) {
+      return NextResponse.json({ success: false, error: 'Registration failed' }, { status: 500 })
+    }
+
+    // Create response
     const response = NextResponse.json(
       {
         success: true,
-        user: newUser,
-        email,
-        registeredAt: new Date().toISOString(),
+        ...sessionData,
       },
       { status: 201 }
     )
 
-    response.cookies.set({
-      name: 'airmada_session',
-      value: 'authenticated',
-      maxAge: 86400, // 24 hours
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+    // Set session cookies
+    response.cookies.set('airmada_session', 'authenticated', {
+      path: '/',
+      httpOnly: false,
       sameSite: 'lax',
+      maxAge: 86400, // 24 hours
+    })
+
+    response.cookies.set('user_session', JSON.stringify(sessionData), {
+      path: '/',
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 86400, // 24 hours
     })
 
     return response
