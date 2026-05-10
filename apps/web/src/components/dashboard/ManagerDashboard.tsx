@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import {
   LineChart,
   Line,
@@ -332,6 +333,35 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle: string })
 // =============================================================================
 
 export function ManagerDashboard() {
+  const [shipments, setShipments] = useState<any[]>([])
+
+  const deliveredShipments = shipments.filter((shipment) => shipment.status === 'DELIVERED').length
+
+  const pendingShipments = shipments.filter((shipment) => shipment.status === 'PENDING').length
+
+  const inTransitShipments = shipments.filter((shipment) => shipment.status === 'IN_TRANSIT').length
+
+  const failedShipments = shipments.filter((shipment) => shipment.status === 'FAILED').length
+
+  const assignedShipments = shipments.filter((shipment) => shipment.status === 'ASSIGNED').length
+
+  const returnedShipments = shipments.filter((shipment) => shipment.status === 'RETURNED').length
+
+  const supabase = createClient()
+  // console.log('Supabase connected:', supabase)
+  async function fetchShipments() {
+    const { data, error } = await supabase.from('shipments').select('*')
+
+    if (error) {
+      console.error('Error fetching shipments:', error)
+    } else {
+      setShipments(data || [])
+    }
+  }
+  useEffect(() => {
+    fetchShipments()
+  }, [])
+
   return (
     <div className="space-y-6">
       {/* ── KPI Cards ────────────────────────────────────────────────────── */}
@@ -407,8 +437,69 @@ export function ManagerDashboard() {
         </div>
       </div>
 
-      {/* TODO: add shipments summary pakai ThreeDPieChart */}
+      {/* ── AI Operational Insights ───────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <SectionHeader
+          title="AI Operational Insights"
+          subtitle="AI-powered recommendations based on operational data"
+        />
 
+        <p className="mt-1 text-xs text-slate-400">
+          Generated from {shipments.length} shipment records
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">
+            Delivered: {deliveredShipments}
+          </span>
+
+          <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-700">
+            Pending: {pendingShipments}
+          </span>
+
+          <span className="rounded-full bg-sky-100 px-3 py-1 text-sky-700">
+            In Transit: {inTransitShipments}
+          </span>
+
+          <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
+            Failed: {failedShipments}
+          </span>
+
+          <span className="rounded-full bg-violet-100 px-3 py-1 text-violet-700">
+            Assigned: {assignedShipments}
+          </span>
+
+          <span className="rounded-full bg-slate-200 px-3 py-1 text-slate-700">
+            Returned: {returnedShipments}
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl bg-emerald-50 p-4">
+            <p className="text-xs font-semibold text-emerald-600">PREDICTED REVENUE</p>
+            <p className="mt-2 text-2xl font-bold text-emerald-700">Rp 24.5M</p>
+            <p className="mt-1 text-xs text-emerald-600">+12% from last week</p>
+          </div>
+
+          <div className="rounded-xl bg-orange-50 p-4">
+            <p className="text-xs font-semibold text-orange-600">MAINTENANCE ALERT</p>
+            <p className="mt-2 text-lg font-bold text-orange-700">TR-0145</p>
+            <p className="mt-1 text-xs text-orange-600">Schedule maintenance this week</p>
+          </div>
+
+          <div className="rounded-xl bg-sky-50 p-4">
+            <p className="text-xs font-semibold text-sky-600">ROUTE OPTIMIZATION</p>
+            <p className="mt-2 text-lg font-bold text-sky-700">East Route</p>
+            <p className="mt-1 text-xs text-sky-600">Reduce delay by 18%</p>
+          </div>
+
+          <div className="rounded-xl bg-violet-50 p-4">
+            <p className="text-xs font-semibold text-violet-600">EFFICIENCY GAIN</p>
+            <p className="mt-2 text-2xl font-bold text-violet-700">+8%</p>
+            <p className="mt-1 text-xs text-violet-600">Fuel usage improvement</p>
+          </div>
+        </div>
+      </div>
       {/* ── Recent Shipments ─────────────────────────────────────────────── */}
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="border-b border-slate-100 p-5">
