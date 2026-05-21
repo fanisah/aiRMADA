@@ -21,7 +21,7 @@ export async function GET(_req: Request) {
     }
 
     return NextResponse.json(kpiData)
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch KPI data' }, { status: 500 })
   }
 }

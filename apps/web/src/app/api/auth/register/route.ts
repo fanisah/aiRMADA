@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let newUser: any = null
-    let sessionData: any = null
+    let newUser: Record<string, unknown> | null = null
+    let sessionData: Record<string, unknown> | null = null
     let _requiresEmailConfirmation = false
 
     // ===== TRY: Supabase Registration =====

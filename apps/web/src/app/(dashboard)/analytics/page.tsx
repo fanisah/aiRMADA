@@ -14,7 +14,6 @@ import {
   Pie,
   Cell,
 } from 'recharts'
-import { TrendingUp, Users, Package, AlertCircle } from 'lucide-react'
 
 interface KPIMetrics {
   activeVehicles: number

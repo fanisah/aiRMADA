@@ -1,8 +1,35 @@
 'use client'
 
-import { MapPin, Truck } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { MapPin, Truck, Zap, X } from 'lucide-react'
+import { useRouteOptimization } from '@/hooks/useRouteOptimization'
+import { RouteOptimizationResult } from '@/components/dashboard/RouteOptimizationResult'
+
+// Sample pending shipments for route optimization demo
+const SAMPLE_SHIPMENTS = [
+  { lat: -6.2088, lng: 106.8456 },
+  { lat: -6.5959, lng: 106.789 },
+  { lat: -6.4025, lng: 106.7941 },
+  { lat: -6.178, lng: 106.6304 },
+  { lat: -6.2349, lng: 106.9896 },
+]
+
+const WAREHOUSE = { lat: -6.1751, lng: 106.8249 } // Jakarta Pusat
 
 export default function RoutesPage() {
+  const { optimize, loading, error, data } = useRouteOptimization()
+  const [showOptimization, setShowOptimization] = useState(false)
+  const resultRef = useRef<HTMLDivElement>(null)
+
+  const handleOptimizeRoute = async () => {
+    setShowOptimization(true)
+    // Scroll ke result panel setelah render
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+    await optimize(WAREHOUSE, SAMPLE_SHIPMENTS)
+  }
+
   return (
     <div className="mx-auto max-w-screen-xl space-y-6 p-6">
       {/* HEADER */}
@@ -154,9 +181,60 @@ export default function RoutesPage() {
               <p className="text-sm text-slate-800">Customer B - Bekasi</p>
               <p className="mt-1 text-xs text-orange-600">ETA: 10:45</p>
             </div>
+
+            {/* AI OPTIMIZE BUTTON - NEW */}
+            <button
+              onClick={handleOptimizeRoute}
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-50"
+            >
+              <Zap size={16} />
+              {loading ? 'Optimizing...' : 'AI Optimize Route'}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* ================= OPTIMIZATION RESULT - NEW ================= */}
+      {showOptimization && (
+        <div ref={resultRef} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+                <Zap size={20} className="text-orange-500" />
+                Route Optimization Result
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {SAMPLE_SHIPMENTS.length} shipments optimized
+              </p>
+            </div>
+            <button
+              onClick={() => setShowOptimization(false)}
+              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" />
+                <p className="text-sm text-slate-500">Calculating optimal route...</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-lg bg-red-50 p-4">
+              <p className="text-sm font-medium text-red-800">Error occurred</p>
+              <p className="mt-1 text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {data && !loading && <RouteOptimizationResult result={data} />}
+        </div>
+      )}
     </div>
   )
 }

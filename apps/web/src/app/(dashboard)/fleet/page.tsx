@@ -25,9 +25,14 @@ import {
   Pencil,
   Trash2,
   Info,
+  AlertTriangle,
+  Zap,
+  Activity,
 } from 'lucide-react'
 import type { Vehicle, VehicleType, VehicleStatus } from '@/types'
 import { DUMMY_VEHICLES } from '@/mocks'
+import { useAnomalyDetection } from '@/hooks/useAnomalyDetection'
+import { AnomalyAlerts } from '@/components/dashboard/AnomalyAlerts'
 
 /**
  * Halaman Fleet
@@ -259,10 +264,16 @@ function ColumnFilterChip({
 }
 
 // =============================================================================
-// ACTION MENU (tiap baris tabel)
+// ACTION MENU (tiap baris tabel) - UPDATED WITH ANOMALY DETECTION
 // =============================================================================
 
-function RowActions({ vehicleId }: { vehicleId: string }) {
+function RowActions({
+  vehicleId,
+  onCheckAnomalies,
+}: {
+  vehicleId: string
+  onCheckAnomalies: () => void
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -287,7 +298,19 @@ function RowActions({ vehicleId }: { vehicleId: string }) {
 
       {open && (
         <div className="absolute top-8 right-0 z-30 w-40 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl shadow-slate-200/60">
-          {/* TODO: Hubungkan ke router.push(`/fleet/${vehicleId}`) */}
+          {/* Check Anomalies - NEW */}
+          <button
+            onClick={() => {
+              onCheckAnomalies()
+              setOpen(false)
+            }}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-orange-600 transition-colors hover:bg-orange-50"
+          >
+            <AlertTriangle size={14} />
+            Check Anomalies
+          </button>
+
+          {/* View Details */}
           <button
             onClick={() => router.push(`/fleet/${vehicleId}`)}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50"
@@ -295,7 +318,8 @@ function RowActions({ vehicleId }: { vehicleId: string }) {
             <Info size={14} className="text-slate-400" />
             View Details
           </button>
-          {/* TODO: Hubungkan ke modal edit atau router.push(`/fleet/${vehicleId}/edit`) */}
+
+          {/* Edit */}
           <button
             onClick={() => setOpen(false)}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50"
@@ -303,8 +327,10 @@ function RowActions({ vehicleId }: { vehicleId: string }) {
             <Pencil size={14} className="text-slate-400" />
             Edit
           </button>
+
           <div className="my-1 border-t border-slate-100" />
-          {/* TODO: Hubungkan ke DELETE /api/vehicles/:id */}
+
+          {/* Delete */}
           <button
             onClick={() => setOpen(false)}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-50"
@@ -379,6 +405,7 @@ function SummaryCards({ vehicles }: { vehicles: Vehicle[] }) {
 
 export default function FleetPage() {
   const router = useRouter()
+  const { detect, loading, error } = useAnomalyDetection()
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
@@ -394,6 +421,10 @@ export default function FleetPage() {
     new Set(ALL_COLUMNS.map((c) => c.key))
   )
   const [showColPanel, setShowColPanel] = useState(false)
+
+  // ── Anomaly Detection State - NEW ─────────────────────────────────────────
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null)
+  const [anomalies, setAnomalies] = useState<any>(null)
 
   // ── Derived filter options ──────────────────────────────────────────────────
   const years = useMemo(
@@ -468,6 +499,13 @@ export default function FleetPage() {
   const activeFilterCount = [filterStatus, filterType, filterYear, filterFuel].filter(
     Boolean
   ).length
+
+  // ── Anomaly Detection Handler - NEW ─────────────────────────────────────────
+  const handleCheckAnomalies = async (vehicleId: string) => {
+    setSelectedVehicleId(vehicleId)
+    const result = await detect(vehicleId, 15) // Check last 15 minutes
+    setAnomalies(result)
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -741,7 +779,10 @@ export default function FleetPage() {
                         >
                           View Details
                         </button>
-                        <RowActions vehicleId={vehicle.id} />
+                        <RowActions
+                          vehicleId={vehicle.id}
+                          onCheckAnomalies={() => handleCheckAnomalies(vehicle.id)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -766,6 +807,51 @@ export default function FleetPage() {
 
       {/* ── Summary Cards ────────────────────────────────────────────────── */}
       <SummaryCards vehicles={DUMMY_VEHICLES} />
+
+      {/* ── AI Anomaly Detection Panel - NEW ────────────────────────────── */}
+      {selectedVehicleId && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+                <AlertTriangle size={20} className="text-orange-500" />
+                Anomaly Detection Results
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Vehicle: {DUMMY_VEHICLES.find((v) => v.id === selectedVehicleId)?.plate_number}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedVehicleId(null)
+                setAnomalies(null)
+              }}
+              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" />
+                <p className="text-sm text-slate-500">Analyzing vehicle anomalies...</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-lg bg-red-50 p-4">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {anomalies && !loading && (
+            <AnomalyAlerts vehicleId={selectedVehicleId} lastGpsMinutesAgo={15} />
+          )}
+        </div>
+      )}
     </div>
   )
 }

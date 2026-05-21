@@ -85,7 +85,7 @@ export async function getKPIMetrics(): Promise<KPIMetrics> {
   // 7. On-Time Delivery Rate
   const { data: deliveredShipments } = await supabase
     .from('shipments')
-    .select('estimated_delivery, actual_delivery, status')
+    .select('estimated_delivery, actual_delivery, status, created_at')
     .eq('status', 'delivered')
     .gte('created_at', sevenDaysAgo.toISOString())
 

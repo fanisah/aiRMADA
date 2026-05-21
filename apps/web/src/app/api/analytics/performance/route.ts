@@ -15,7 +15,7 @@ export async function GET(_req: Request) {
     ]
 
     return NextResponse.json(performanceData)
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch performance data' }, { status: 500 })
   }
 }
