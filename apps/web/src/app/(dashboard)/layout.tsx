@@ -44,11 +44,17 @@ const navItems: NavItem[] = [
   { label: 'Logistics', href: '/shipments', icon: <Package size={18} /> },
   { label: 'Live Routes', href: '/routes', icon: <MapPin size={18} /> },
 ]
+const NavItemsDrivers: NavItem[] = [
+  { label: 'Dashboard', href: '/overview', icon: <LayoutDashboard size={18} /> },
+  { label: 'Packages', href: '/packages', icon: <Package size={18} /> },
+  { label: 'Vehicles', href: '/vehicles', icon: <Truck size={18} /> },
+  { label: 'Maps', href: '/maps', icon: <MapPin size={18} /> },
+]
 
 // ─── Get current logged-in user from sessionStorage ───────────────────────────
 function getCurrentUser(): CurrentUser {
   if (typeof window === 'undefined') {
-    return { initials: 'AN', full_name: 'Andi Wijaya', role: 'Manager' }
+    return { initials: 'UU', full_name: 'Unknown User', role: 'Unknown' }
   }
 
   const sessionData = sessionStorage.getItem('user_session')
@@ -59,18 +65,26 @@ function getCurrentUser(): CurrentUser {
       const initials =
         user.short_name?.substring(0, 2).toUpperCase() ||
         user.full_name?.substring(0, 2).toUpperCase() ||
-        'AN'
+        'UU'
       return {
         initials,
-        full_name: user.full_name || 'User',
-        role: user.role || 'Manager',
+        full_name: user.full_name || 'Unknown User',
+        role: user.role || 'Unknown',
       }
     } catch (error) {
       console.error('Failed to parse user session:', error)
     }
   }
 
-  return { initials: 'AN', full_name: 'Andi Wijaya', role: 'Manager' }
+  return { initials: 'UU', full_name: 'Unknown User', role: 'Unknown' }
+}
+
+// ─── Get navigation items based on user role ──────────────────────────────────
+function getNavItemsByRole(role: string): NavItem[] {
+  if (role?.toUpperCase() === 'DRIVER') {
+    return NavItemsDrivers
+  }
+  return navItems
 }
 
 // ─── Sidebar Item ─────────────────────────────────────────────────────────────
@@ -167,7 +181,7 @@ function Sidebar({
 
         {/* Nav */}
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-          {navItems.map((item) => (
+          {getNavItemsByRole(currentUser.role).map((item) => (
             <NavLink
               key={item.href}
               item={item}
@@ -354,7 +368,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  const currentPage = navItems.find((item) => pathname.startsWith(item.href))
+  const navItemsByRole = getNavItemsByRole(currentUser.role)
+  const currentPage = navItemsByRole.find((item) => pathname.startsWith(item.href))
   const pageTitle = currentPage?.label ?? 'Dashboard'
 
   return (
