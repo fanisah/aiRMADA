@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { Route } from 'next'
 import Link from 'next/link'
 import { Truck, AlertTriangle, Wrench, Zap, Gauge, ChevronRight, Search } from 'lucide-react'
-import { Vehicle, VehicleStatus, VehicleType } from '@/types'
+import { Vehicle, VehicleStatus } from '@/types'
 
 // Mock data untuk kendaraan
 const mockVehicles: Record<string, Vehicle> = {
@@ -96,7 +97,7 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   const needsMaintenance = daysSinceMaintenance > 60
 
   return (
-    <Link href={`/vehicles/${vehicle.id}` as any}>
+    <Link href={`/vehicles/${vehicle.id}` as Route}>
       <div className="group h-full rounded-lg border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-orange-300 hover:shadow-lg">
         {/* Header dengan plate dan status */}
         <div className="mb-4 flex items-start justify-between">

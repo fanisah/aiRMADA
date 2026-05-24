@@ -52,11 +52,13 @@ export async function POST(req: NextRequest) {
       }
 
       // Fetch user profile from database
-      let { data: profile, error: profileError } = await supabase
+      let profile
+      const { data: fetchedProfile, error: profileError } = await supabase
         .from('users')
         .select('id, full_name, short_name, role, cell_phone')
         .eq('id', authData.user.id)
         .single()
+      profile = fetchedProfile
 
       // If profile doesn't exist, auto-create it
       if (profileError) {
@@ -84,7 +86,6 @@ export async function POST(req: NextRequest) {
             'Failed to create user profile: ' + (createError?.message || 'Unknown error')
           )
         }
-
         profile = newProfile
       }
 

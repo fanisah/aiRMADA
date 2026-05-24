@@ -4,7 +4,7 @@
  */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Truck, Users, Package, AlertTriangle, AlertCircle } from 'lucide-react'
 import { useAnomalyDetection } from '@/hooks/useAnomalyDetection'
 import { AnomalyAlerts } from './AnomalyAlerts'
@@ -21,7 +21,12 @@ interface MonitoredVehicle {
 
 export function ManagerDashboardEnhanced() {
   const [selectedVehicle, setSelectedVehicle] = useState<MonitoredVehicle | null>(null)
-  const { anomalies, loading: detectingAnomalies, detect, hasHighSeverity } = useAnomalyDetection()
+  const {
+    anomalies,
+    loading: detectingAnomalies,
+    detect,
+    hasHighSeverity: _hasHighSeverity,
+  } = useAnomalyDetection()
 
   // Demo vehicles
   const monitoredVehicles: MonitoredVehicle[] = [

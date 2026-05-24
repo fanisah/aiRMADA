@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-// import { Route } from 'next'
 import { useRouter } from 'next/navigation'
 import {
   Search,
@@ -9,8 +8,6 @@ import {
   Filter,
   SlidersHorizontal,
   ChevronDown,
-  // Eye,
-  // EyeOff,
   Truck,
   X,
   ArrowUpDown,
@@ -26,13 +23,12 @@ import {
   Trash2,
   Info,
   AlertTriangle,
-  Zap,
-  Activity,
 } from 'lucide-react'
 import type { Vehicle, VehicleType, VehicleStatus } from '@/types'
 import { DUMMY_VEHICLES } from '@/mocks'
 import { useAnomalyDetection } from '@/hooks/useAnomalyDetection'
 import { AnomalyAlerts } from '@/components/dashboard/AnomalyAlerts'
+import { AnomalyResult } from '@/lib/ai-client'
 
 /**
  * Halaman Fleet
@@ -424,7 +420,7 @@ export default function FleetPage() {
 
   // ── Anomaly Detection State - NEW ─────────────────────────────────────────
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null)
-  const [anomalies, setAnomalies] = useState<any>(null)
+  const [anomalies, setAnomalies] = useState<AnomalyResult[] | null>(null)
 
   // ── Derived filter options ──────────────────────────────────────────────────
   const years = useMemo(

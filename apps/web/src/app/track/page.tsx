@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Package, MapPin, Clock, TrendingUp, AlertCircle, X } from 'lucide-react'
+import { MapPin, Clock, TrendingUp, AlertCircle, X } from 'lucide-react'
 import { useETAPrediction } from '@/hooks/useETAPrediction'
+import { PredictETAResponse } from '@/lib/ai-client'
 
 // Sample shipment data for demo
 const SAMPLE_SHIPMENT = {
@@ -46,7 +47,7 @@ const StatusBadge = ({ text }: { text: string }) => {
 
 export default function TrackingPage() {
   const { predict, loading, error } = useETAPrediction()
-  const [etaResult, setEtaResult] = useState<any>(null)
+  const [etaResult, setEtaResult] = useState<PredictETAResponse | null>(null)
   const [showETA, setShowETA] = useState(false)
 
   const handlePredictETA = async () => {

@@ -21,12 +21,12 @@ export function AIIntegrationDemo() {
   const {
     optimize: optimizeRoute,
     loading: optimizingRoute,
-    data: optimizedRoute,
+    data: _optimizedRoute,
   } = useRouteOptimization()
   const { predict: predictEta, loading: predictingEta, data: etaPrediction } = useETAPrediction()
   const { anomalies, loading: detectingAnomalies, detect: detectAnomalies } = useAnomalyDetection()
 
-  const [selectedRoute, setSelectedRoute] = useState<typeof optimizedRoute | null>(null)
+  const [selectedRoute, setSelectedRoute] = useState<typeof _optimizedRoute | null>(null)
 
   // Demo: Optimize Route
   const handleOptimizeRoute = async () => {

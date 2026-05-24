@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { MapPin, Truck, Zap, X } from 'lucide-react'
 import { useRouteOptimization } from '@/hooks/useRouteOptimization'
 import { RouteOptimizationResult } from '@/components/dashboard/RouteOptimizationResult'

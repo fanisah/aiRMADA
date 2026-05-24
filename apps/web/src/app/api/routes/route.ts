@@ -214,8 +214,10 @@ export async function GET(req: Request) {
         segments: routeData.segments,
       },
     })
-  } catch (error: any) {
-    console.error('API Route Error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui'
+    console.error('GET /api/routes error:', error)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
