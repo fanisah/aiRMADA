@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { Clock, Gauge, Package, AlertCircle, Zap } from 'lucide-react'
+import { Clock, Gauge, Package, AlertCircle, Zap, RefreshCw } from 'lucide-react'
 import { Shipment, ShipmentPriority } from '@/types'
 
 // Mock shipment data with coordinates
@@ -141,9 +141,6 @@ function getPriorityConfig(priority: ShipmentPriority) {
   return config[priority]
 }
 
-// Catatan: Pengurutan shipment sekarang dikendalikan oleh TSP Matrix di backend
-// Frontend hanya menampilkan data yang sudah dioptimalkan dari server
-
 export default function MapsPage() {
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [sortedShipments, setSortedShipments] = useState<Shipment[]>([])
@@ -153,9 +150,13 @@ export default function MapsPage() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
   const [routeStats, setRouteStats] = useState({ distance: 0, duration: 0 })
 
+  /**
+   * Naikkan nilai ini untuk memaksa RoutesMap menghapus cache segmen dan
+   * melakukan fetch ulang ke ORS (refresh manual oleh pengguna).
+   */
+  const [routeRefreshKey, setRouteRefreshKey] = useState(0)
+
   useEffect(() => {
-    // Load shipments dari API backend yang sudah dioptimalkan TSP Matrix
-    // Untuk saat ini gunakan mockShipments langsung (order dari backend)
     setSortedShipments(mockShipments)
     if (mockShipments.length > 0) {
       setSelectedShipment(mockShipments[0])
@@ -205,14 +206,19 @@ export default function MapsPage() {
 
   const handleRouteOptimized = (orderedIds: string[]) => {
     setSortedShipments((prev) => {
-      // Buat string dari urutan ID yang lama dan yang baru untuk dibandingkan
       const currentOrder = prev.map((s) => s.id).join(',')
       const newOrder = orderedIds.join(',')
-      // Jika urutannya sudah sama, jangan kembalikan array baru
       if (currentOrder === newOrder) return prev
-      // Jika urutan berbeda, baru lakukan sorting
       return [...prev].sort((a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id))
     })
+  }
+
+  /**
+   * Hapus cache dan minta RoutesMap fetch ulang seluruh rute dari ORS.
+   * Dipanggil saat pengguna menekan tombol "Optimasi Rute".
+   */
+  const handleRefreshRoute = () => {
+    setRouteRefreshKey((k) => k + 1)
   }
 
   const totalWeight = sortedShipments.reduce((sum, s) => sum + s.weight_kg, 0)
@@ -228,14 +234,13 @@ export default function MapsPage() {
           onShipmentSelect={setSelectedShipment}
           onRouteOptimized={handleRouteOptimized}
           onRouteCalculated={(dist, dur) => setRouteStats({ distance: dist, duration: dur })}
+          refreshKey={routeRefreshKey}
         />
 
         {/* Map controls - Stats floating card */}
-        {/* 1. Mengubah max-w-sm menjadi w-80 agar lebar kartu konsisten memberikan ruang di kanan */}
         <div className="absolute bottom-6 left-6 z-10 w-80 rounded-lg border border-gray-200 bg-white shadow-lg">
           <div className="space-y-3 p-4">
             {/* Item: Total Jarak */}
-            {/* 2. Menambahkan gap-x-8 sebagai jarak aman minimal */}
             <div className="flex items-center justify-between gap-x-8">
               <div className="flex items-center gap-2 text-gray-600">
                 <Gauge size={16} />
@@ -391,7 +396,11 @@ export default function MapsPage() {
                 ? '✓ Rute Dimulai'
                 : 'Mulai Rute'}
           </button>
-          <button className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 transition-colors hover:bg-gray-50">
+          <button
+            onClick={handleRefreshRoute}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            <RefreshCw size={15} />
             Optimasi Rute
           </button>
         </div>

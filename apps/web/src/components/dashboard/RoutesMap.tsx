@@ -3,6 +3,13 @@ import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import { Shipment } from '@/types'
 
+interface RouteSegment {
+  coords: [number, number][]
+  distance: number
+  duration: number
+  cacheKey: string
+}
+
 interface RoutesMapProps {
   shipments: Shipment[]
   origin: {
@@ -14,6 +21,11 @@ interface RoutesMapProps {
   onShipmentSelect?: (shipment: Shipment) => void
   onRouteOptimized?: (orderedShipmentIds: string[]) => void
   onRouteCalculated?: (distance: number, duration: number) => void
+  /**
+   * Naikkan nilai ini (misal: refreshKey + 1) dari parent untuk memaksa
+   * cache dihapus dan semua rute di-fetch ulang dari ORS.
+   */
+  refreshKey?: number
 }
 
 export default function RoutesMap({
@@ -23,13 +35,23 @@ export default function RoutesMap({
   onShipmentSelect,
   onRouteOptimized,
   onRouteCalculated,
+  refreshKey = 0,
 }: RoutesMapProps) {
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<string, L.Marker>>(new Map())
   const mainPolylineRef = useRef<L.Polyline | null>(null)
   const selectedPolylineRef = useRef<L.Polyline | null>(null)
-  const routeCache = useRef<Record<string, [number, number][]>>({})
-  const [routeCoords, setRouteCoords] = useState<[number, number][]>([])
+
+  /**
+   * Cache koordinat segmen jalan.
+   * Key: "startLng,startLat|endLng,endLat"
+   * Value: array koordinat [lat, lng] untuk L.polyline
+   *
+   * Diisi setelah main route fetch berhasil (dari field `segments` response).
+   * Highlight effect membaca cache ini sehingga tidak perlu fetch ulang.
+   * Cache dikosongkan setiap kali shipments/origin berubah atau refreshKey naik.
+   */
+  const segmentCacheRef = useRef<Record<string, [number, number][]>>({})
 
   const [isFetchingRoute, setIsFetchingRoute] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -153,7 +175,9 @@ export default function RoutesMap({
     }
   }, [shipments, origin, isMobile])
 
-  // ── Gambar rute utama via OSRM (origin → semua shipment secara urutan) ──────
+  // ── Gambar rute utama + isi cache segmen ────────────────────────────────────
+  // Effect ini di-trigger ulang jika shipments/origin berubah ATAU refreshKey naik.
+  // Setiap kali berjalan, cache dikosongkan dahulu agar data tidak stale.
   useEffect(() => {
     const map = mapRef.current
     if (!map || shipments.length === 0) return
@@ -164,16 +188,14 @@ export default function RoutesMap({
       mainPolylineRef.current = null
     }
 
+    // Kosongkan cache — akan diisi ulang dari response fetch ini
+    segmentCacheRef.current = {}
+
     setIsFetchingRoute(true)
 
-    // Format data ke dalam URL query parameters
     const originParam = `${origin.lng},${origin.lat}`
-    const destParam = shipments
-      .map((s) => `${s.recipient_lng},${s.recipient_lat}`) // Hanya koordinat
-      .join('|')
-    const prioritiesParam = shipments
-      .map((s) => s.priority) // Dipisah
-      .join('|')
+    const destParam = shipments.map((s) => `${s.recipient_lng},${s.recipient_lat}`).join('|')
+    const prioritiesParam = shipments.map((s) => s.priority).join('|')
 
     fetch(
       `/api/routes?origin=${originParam}&destinations=${destParam}&priorities=${prioritiesParam}`
@@ -184,19 +206,27 @@ export default function RoutesMap({
         if (!mapRef.current) return
 
         if (result.success && result.data) {
-          // 2. Kirim data jarak dan durasi ke parent (page.tsx)
+          // Kirim statistik jarak dan durasi ke parent
           if (onRouteCalculated) {
-            // Dibulatkan untuk durasi menit
             onRouteCalculated(result.data.distance || 0, Math.round(result.data.duration || 0))
           }
 
-          // 3. Kirim data urutan paket untuk mengurutkan Sidebar
+          // Kirim urutan paket yang sudah dioptimalkan ke parent
           if (onRouteOptimized && result.data.orderedIndices) {
-            // Index dari ORS dihitung dari 1, jadi kita kurangi 1 untuk mencocokkan dengan array
             const orderedIds = result.data.orderedIndices.map(
               (idx: number) => shipments[idx - 1].id
             )
             onRouteOptimized(orderedIds)
+          }
+
+          // ── POPULASI CACHE ──────────────────────────────────────────────────
+          // Response sekarang menyertakan `segments` per-segmen dengan koordinat
+          // lengkap dan cacheKey uniknya. Simpan ke ref agar highlight effect
+          // bisa menggunakannya tanpa fetch tambahan ke ORS.
+          if (Array.isArray(result.data.segments)) {
+            result.data.segments.forEach((seg: RouteSegment) => {
+              segmentCacheRef.current[seg.cacheKey] = seg.coords
+            })
           }
         }
 
@@ -219,50 +249,74 @@ export default function RoutesMap({
         console.error('Fetch route error:', err)
         setIsFetchingRoute(false)
       })
-  }, [shipments, origin])
+    // refreshKey diikutsertakan agar tombol "Optimasi Rute" di parent bisa
+    // memaksa re-fetch dan invalidasi cache secara manual.
+  }, [shipments, origin, refreshKey])
 
-  // ── Highlight rute ke shipment yang dipilih ──────────────────────────────────
+  // ── Highlight segmen menuju shipment yang dipilih ───────────────────────────
+  // Tidak melakukan fetch ke ORS jika segmen sudah tersedia di cache.
+  // Fetch hanya terjadi sebagai fallback jika cache belum siap (race condition
+  // saat main route masih loading atau segmen tidak ada di response).
   useEffect(() => {
     const map = mapRef.current
     if (!map || !selectedShipment || shipments.length === 0) return
 
-    const currentIndex = shipments.findIndex((s) => s.id === selectedShipment.id)
+    // Hapus highlight lama sebelum menggambar yang baru
+    if (selectedPolylineRef.current) {
+      map.removeLayer(selectedPolylineRef.current)
+      selectedPolylineRef.current = null
+    }
 
-    // Tentukan titik mulai (Jika index 0, dari asal driver. Jika > 0, dari lokasi paket sebelumnya)
+    const currentIndex = shipments.findIndex((s) => s.id === selectedShipment.id)
     const startPoint =
       currentIndex > 0
         ? {
             lat: shipments[currentIndex - 1].recipient_lat,
             lng: shipments[currentIndex - 1].recipient_lng,
           }
-        : {
-            lat: origin.lat,
-            lng: origin.lng,
-          }
+        : { lat: origin.lat, lng: origin.lng }
 
+    const cacheKey = `${startPoint.lng},${startPoint.lat}|${selectedShipment.recipient_lng},${selectedShipment.recipient_lat}`
+
+    // ── CACHE HIT: gambar langsung tanpa fetch ──────────────────────────────
+    if (segmentCacheRef.current[cacheKey]) {
+      selectedPolylineRef.current = L.polyline(segmentCacheRef.current[cacheKey], {
+        color: '#3b82f6',
+        weight: 10,
+        opacity: 1,
+      }).addTo(map)
+
+      return () => {
+        if (selectedPolylineRef.current && mapRef.current) {
+          mapRef.current.removeLayer(selectedPolylineRef.current)
+          selectedPolylineRef.current = null
+        }
+      }
+    }
+
+    // ── CACHE MISS: fetch sebagai fallback ──────────────────────────────────
+    // Terjadi jika main route masih loading atau cache tidak mengandung segmen ini.
+    // Hasil fetch disimpan ke cache agar pemilihan ulang shipment yang sama tidak
+    // memicu fetch lagi.
     const controller = new AbortController()
 
-    const originParam = `${startPoint.lng},${startPoint.lat}`
-    const destParam = `${selectedShipment.recipient_lng},${selectedShipment.recipient_lat}`
-    const priorityParam = selectedShipment.priority
-
     fetch(
-      `/api/routes?origin=${originParam}&destinations=${destParam}&priorities=${priorityParam}`,
-      {
-        signal: controller.signal,
-      }
+      `/api/routes?origin=${startPoint.lng},${startPoint.lat}&destinations=${selectedShipment.recipient_lng},${selectedShipment.recipient_lat}&priorities=${selectedShipment.priority}`,
+      { signal: controller.signal }
     )
       .then((res) => res.json())
       .then((result) => {
         if (!mapRef.current) return
 
-        // Hapus garis lama
         if (selectedPolylineRef.current) {
           mapRef.current.removeLayer(selectedPolylineRef.current)
           selectedPolylineRef.current = null
         }
 
         if (result.success && result.data?.coords) {
+          // Simpan ke cache agar kunjungan berikutnya gratis
+          segmentCacheRef.current[cacheKey] = result.data.coords
+
           selectedPolylineRef.current = L.polyline(result.data.coords, {
             color: '#3b82f6',
             weight: 10,
@@ -271,13 +325,11 @@ export default function RoutesMap({
         }
       })
       .catch((err) => {
-        // Abaikan error di console jika request sengaja kita batalkan
         if (err.name !== 'AbortError') {
           console.error('Fetch segment route error:', err)
         }
       })
 
-    // 5. CLEANUP: Bersihkan referensi garis dan batalkan fetch jika user berpindah paket / unmount
     return () => {
       controller.abort()
       if (selectedPolylineRef.current && mapRef.current) {

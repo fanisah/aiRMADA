@@ -7,6 +7,13 @@ interface Coordinate {
   priority?: string
 }
 
+interface RouteSegment {
+  coords: [number, number][]
+  distance: number
+  duration: number
+  cacheKey: string
+}
+
 // Const
 const PRIORITY_WEIGHT: Record<string, number> = {
   same_day: 1,
@@ -118,6 +125,9 @@ async function fetchRoadRoute(waypoints: Coordinate[]) {
   let totalDistance = 0
   let totalDuration = 0
 
+  // Simpan koordinat per-segmen beserta cache key untuk digunakan frontend
+  const segments: RouteSegment[] = []
+
   for (let i = 0; i < results.length; i++) {
     const data = results[i]
     if (!data.features || data.features.length === 0) continue
@@ -126,6 +136,17 @@ async function fetchRoadRoute(waypoints: Coordinate[]) {
     const segmentCoords: [number, number][] = route.geometry.coordinates.map(
       ([lng, lat]: [number, number]) => [lat, lng]
     )
+
+    // Simpan SEBELUM shift agar koordinat awal segmen tetap ada di cache
+    const start = waypoints[i]
+    const end = waypoints[i + 1]
+    segments.push({
+      coords: [...segmentCoords],
+      distance: route.properties.summary.distance / 1000,
+      duration: route.properties.summary.duration / 60,
+      // Key unik berdasarkan koordinat start→end segmen ini
+      cacheKey: `${start.lng},${start.lat}|${end.lng},${end.lat}`,
+    })
 
     if (i > 0) segmentCoords.shift() // Hindari duplikat titik sambung
 
@@ -138,6 +159,8 @@ async function fetchRoadRoute(waypoints: Coordinate[]) {
     coords: allCoords,
     distance: totalDistance / 1000,
     duration: totalDuration / 60,
+    // Data segmen individual — dikembalikan ke frontend untuk di-cache
+    segments,
   }
 }
 
@@ -183,8 +206,12 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       data: {
-        ...routeData,
+        coords: routeData.coords,
+        distance: routeData.distance,
+        duration: routeData.duration,
         orderedIndices: indices,
+        // Segmen individual dikembalikan agar frontend bisa cache tanpa fetch ulang
+        segments: routeData.segments,
       },
     })
   } catch (error: any) {
