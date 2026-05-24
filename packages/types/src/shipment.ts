@@ -7,7 +7,7 @@ export type ShipmentStatus =
   | 'failed'
   | 'returned'
 
-export type ShipmentPriority = 'regular' | 'express' | 'same_day'
+export type ShipmentPriority = 'regular' | 'express' | 'same_day' | 'cargo' | 'economy'
 
 export interface Shipment {
   id: string

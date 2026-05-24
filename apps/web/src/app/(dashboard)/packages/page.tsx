@@ -125,6 +125,8 @@ const priorityConfig: Record<ShipmentPriority, { color: string; label: string }>
   regular: { color: 'text-slate-500', label: 'Regular' },
   express: { color: 'text-orange-600', label: 'Express' },
   same_day: { color: 'text-red-600', label: 'Same Day' },
+  cargo: { color: 'text-indigo-600', label: 'Cargo' },
+  economy: { color: 'text-gray-600', label: 'Economy' },
 }
 
 type FilterStatus = ShipmentStatus | 'all'

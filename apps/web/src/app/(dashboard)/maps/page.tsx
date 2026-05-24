@@ -85,7 +85,7 @@ const mockShipments: Shipment[] = [
 const DRIVER_ORIGIN = {
   lat: -6.2,
   lng: 106.816,
-  name: 'Warehouse Jakarta',
+  id: 'warehouse-jakarta',
 }
 
 // Dynamically import map component
@@ -125,19 +125,24 @@ function getPriorityConfig(priority: ShipmentPriority) {
       icon: <Package size={16} />,
       badge: 'bg-blue-100 text-blue-700',
     },
+    cargo: {
+      color: 'text-indigo-600 bg-indigo-50',
+      label: 'Cargo',
+      icon: <Package size={16} />,
+      badge: 'bg-indigo-100 text-indigo-700',
+    },
+    economy: {
+      color: 'text-gray-600 bg-gray-50',
+      label: 'Economy',
+      icon: <Package size={16} />,
+      badge: 'bg-gray-100 text-gray-700',
+    },
   }
   return config[priority]
 }
 
-// Sort shipments by priority (same_day > express > regular)
-function sortByPriority(shipments: Shipment[]): Shipment[] {
-  const priorityOrder: Record<ShipmentPriority, number> = {
-    same_day: 0,
-    express: 1,
-    regular: 2,
-  }
-  return [...shipments].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
-}
+// Catatan: Pengurutan shipment sekarang dikendalikan oleh TSP Matrix di backend
+// Frontend hanya menampilkan data yang sudah dioptimalkan dari server
 
 export default function MapsPage() {
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
@@ -146,9 +151,12 @@ export default function MapsPage() {
   const [routeStarted, setRouteStarted] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
+  const [routeStats, setRouteStats] = useState({ distance: 0, duration: 0 })
 
   useEffect(() => {
-    setSortedShipments(sortByPriority(mockShipments))
+    // Load shipments dari API backend yang sudah dioptimalkan TSP Matrix
+    // Untuk saat ini gunakan mockShipments langsung (order dari backend)
+    setSortedShipments(mockShipments)
     if (mockShipments.length > 0) {
       setSelectedShipment(mockShipments[0])
     }
@@ -171,7 +179,7 @@ export default function MapsPage() {
         setDriverOrigin({
           lat: latitude,
           lng: longitude,
-          name: 'Lokasi Saya (Driver)',
+          id: 'driver-location',
         })
         setRouteStarted(true)
         setIsLoadingLocation(false)
@@ -195,40 +203,59 @@ export default function MapsPage() {
     )
   }
 
-  // Calculate route stats
-  const totalDistance = mockShipments.length * 2.5 // Mock distance in km
-  const estimatedDuration = mockShipments.length * 15 // Mock duration in minutes
-  const totalWeight = mockShipments.reduce((sum, s) => sum + s.weight_kg, 0)
+  const handleRouteOptimized = (orderedIds: string[]) => {
+    setSortedShipments((prev) => {
+      // Buat string dari urutan ID yang lama dan yang baru untuk dibandingkan
+      const currentOrder = prev.map((s) => s.id).join(',')
+      const newOrder = orderedIds.join(',')
+      // Jika urutannya sudah sama, jangan kembalikan array baru
+      if (currentOrder === newOrder) return prev
+      // Jika urutan berbeda, baru lakukan sorting
+      return [...prev].sort((a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id))
+    })
+  }
+
+  const totalWeight = sortedShipments.reduce((sum, s) => sum + s.weight_kg, 0)
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
+    <div className="flex h-full overflow-hidden bg-white">
       {/* Map */}
       <div className="relative flex-1">
         <RoutesMap
           shipments={sortedShipments}
           origin={driverOrigin}
           selectedShipment={selectedShipment}
+          onShipmentSelect={setSelectedShipment}
+          onRouteOptimized={handleRouteOptimized}
+          onRouteCalculated={(dist, dur) => setRouteStats({ distance: dist, duration: dur })}
         />
 
         {/* Map controls - Stats floating card */}
-        <div className="absolute bottom-6 left-6 z-10 max-w-sm rounded-lg border border-gray-200 bg-white shadow-lg">
+        {/* 1. Mengubah max-w-sm menjadi w-80 agar lebar kartu konsisten memberikan ruang di kanan */}
+        <div className="absolute bottom-6 left-6 z-10 w-80 rounded-lg border border-gray-200 bg-white shadow-lg">
           <div className="space-y-3 p-4">
-            <div className="flex items-center justify-between">
+            {/* Item: Total Jarak */}
+            {/* 2. Menambahkan gap-x-8 sebagai jarak aman minimal */}
+            <div className="flex items-center justify-between gap-x-8">
               <div className="flex items-center gap-2 text-gray-600">
                 <Gauge size={16} />
                 <span className="text-sm">Total Jarak</span>
               </div>
-              <p className="font-bold text-gray-900">{totalDistance.toFixed(1)} km</p>
+              <p className="font-bold text-gray-900">{routeStats.distance.toFixed(1)} km</p>
             </div>
-            <div className="flex items-center justify-between">
+
+            {/* Item: Est. Durasi */}
+            <div className="flex items-center justify-between gap-x-8">
               <div className="flex items-center gap-2 text-gray-600">
                 <Clock size={16} />
-                <span className="text-sm">Estimasi Durasi</span>
+                <span className="text-sm">Est. Durasi</span>
               </div>
-              <p className="font-bold text-gray-900">{estimatedDuration} menit</p>
+              <p className="font-bold text-gray-900">{routeStats.duration} menit</p>
             </div>
+
+            {/* Item: Total Beban */}
             <div className="border-t border-gray-200 pt-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-x-8">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Package size={16} />
                   <span className="text-sm">Total Beban</span>
@@ -256,7 +283,7 @@ export default function MapsPage() {
             />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900">Titik Awal</p>
-              <p className="truncate text-xs text-gray-600">{driverOrigin.name}</p>
+              <p className="truncate text-xs text-gray-600">{driverOrigin.id}</p>
               {routeStarted && (
                 <p className="mt-1 text-xs text-green-600">
                   {driverOrigin.lat.toFixed(4)}, {driverOrigin.lng.toFixed(4)}

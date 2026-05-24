@@ -8,101 +8,45 @@ interface RoutesMapProps {
   origin: {
     lat: number
     lng: number
-    name: string
+    id: string
   }
   selectedShipment: Shipment | null
+  onShipmentSelect?: (shipment: Shipment) => void
+  onRouteOptimized?: (orderedShipmentIds: string[]) => void
+  onRouteCalculated?: (distance: number, duration: number) => void
 }
 
-// =============================================================================
-// OSRM ROUTING HELPER
-// Menggunakan OSRM public demo server — gratis, berbasis OpenStreetMap.
-// Untuk production, ganti dengan server OSRM sendiri atau OpenRouteService.
-//
-// Format koordinat OSRM: lng,lat (kebalikan dari Leaflet lat,lng)
-// =============================================================================
-
-const ORS_BASE = 'https://api.openrouteservice.org/v2/directions/driving-car'
-const ORS_API_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY
-
-interface ORSResponse {
-  type: string
-  features: Array<{
-    type: string
-    geometry: {
-      type: string
-      coordinates: [number, number][] // [lng, lat]
-    }
-    properties: {
-      summary: {
-        distance: number // meter
-        duration: number // detik
-        ascent: number
-        descent: number
-      }
-    }
-  }>
-}
-
-async function fetchRoadRoute(
-  waypoints: Array<{ lat: number; lng: number }>
-): Promise<{ coords: L.LatLngTuple[]; distance: number; duration: number } | null> {
-  // ORS butuh minimal 2 titik
-  if (waypoints.length < 2) return null
-
-  let allCoords: L.LatLngTuple[] = []
-  let totalDistance = 0
-  let totalDuration = 0
-
-  try {
-    // Karena spesifikasi endpoint GET hanya menerima 1 pasang start & end,
-    // kita memanggilnya secara berpasangan untuk setiap segmen waypoint (A->B, B->C, dst).
-    for (let i = 0; i < waypoints.length - 1; i++) {
-      const start = waypoints[i]
-      const end = waypoints[i + 1]
-
-      const url = `${ORS_BASE}?api_key=${ORS_API_KEY}&start=${start.lng},${start.lat}&end=${end.lng},${end.lat}`
-
-      const res = await fetch(url, { signal: AbortSignal.timeout(10_000) })
-      if (!res.ok) return null
-
-      const data: ORSResponse = await res.json()
-      if (!data.features || data.features.length === 0) return null
-
-      const route = data.features[0]
-
-      // Konversi [lng, lat] dari GeoJSON LineString → L.LatLngTuple [lat, lng] untuk Leaflet
-      const segmentCoords: L.LatLngTuple[] = route.geometry.coordinates.map(([lng, lat]) => [
-        lat,
-        lng,
-      ])
-
-      allCoords = allCoords.concat(segmentCoords)
-      totalDistance += route.properties.summary.distance
-      totalDuration += route.properties.summary.duration
-    }
-
-    return {
-      coords: allCoords,
-      distance: totalDistance / 1000, // Konversi meter ke km
-      duration: totalDuration / 60, // Konversi detik ke menit
-    }
-  } catch (error) {
-    console.error('Gagal mengambil rute dari ORS:', error)
-    return null
-  }
-}
-
-// =============================================================================
-// COMPONENT
-// =============================================================================
-
-export default function RoutesMap({ shipments, origin, selectedShipment }: RoutesMapProps) {
+export default function RoutesMap({
+  shipments,
+  origin,
+  selectedShipment,
+  onShipmentSelect,
+  onRouteOptimized,
+  onRouteCalculated,
+}: RoutesMapProps) {
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<string, L.Marker>>(new Map())
   const mainPolylineRef = useRef<L.Polyline | null>(null)
   const selectedPolylineRef = useRef<L.Polyline | null>(null)
+  const routeCache = useRef<Record<string, [number, number][]>>({})
+  const [routeCoords, setRouteCoords] = useState<[number, number][]>([])
 
   const [isFetchingRoute, setIsFetchingRoute] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Pin sizes: 1.5x bigger on mobile
+  const originIconSize = isMobile ? 60 : 40
+  const originIconAnchor = isMobile ? 30 : 20
+  const shipmentIconSize = isMobile ? 54 : 36
+  const shipmentIconAnchor = isMobile ? 27 : 18
 
   // ── Inisiasi peta + marker ──────────────────────────────────────────────────
   useEffect(() => {
@@ -126,21 +70,21 @@ export default function RoutesMap({ shipments, origin, selectedShipment }: Route
         <div style="
           background: linear-gradient(135deg, #3b82f6, #2563eb);
           color: white; border-radius: 50%;
-          width: 40px; height: 40px;
+          width: ${originIconSize}px; height: ${originIconSize}px;
           display: flex; align-items: center; justify-content: center;
-          font-weight: bold; font-size: 18px;
+          font-weight: bold; font-size: ${isMobile ? 24 : 18}px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.35);
           border: 2px solid white;
         ">🚚</div>
       `,
       className: '',
-      iconSize: [40, 40],
-      iconAnchor: [20, 20],
+      iconSize: [originIconSize, originIconSize],
+      iconAnchor: [originIconAnchor, originIconAnchor],
     })
 
     const originMarker = L.marker([origin.lat, origin.lng], { icon: originIcon })
       .addTo(map)
-      .bindPopup(`<b>${origin.name}</b>`)
+      .bindPopup(`<b>${origin.id}</b>`)
     markersRef.current.set('origin', originMarker)
 
     // Marker tiap shipment
@@ -148,6 +92,8 @@ export default function RoutesMap({ shipments, origin, selectedShipment }: Route
       same_day: '#dc2626',
       express: '#f97316',
       regular: '#3b82f6',
+      cargo: '#6366f1',
+      economy: '#6b7280',
     }
 
     shipments.forEach((shipment, index) => {
@@ -157,16 +103,16 @@ export default function RoutesMap({ shipments, origin, selectedShipment }: Route
         html: `
           <div style="
             background: ${color}; color: white;
-            border-radius: 50%; width: 36px; height: 36px;
+            border-radius: 50%; width: ${shipmentIconSize}px; height: ${shipmentIconSize}px;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 15px;
+            font-weight: bold; font-size: ${isMobile ? 18 : 15}px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             border: 2px solid white;
           ">${index + 1}</div>
         `,
         className: '',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
+        iconSize: [shipmentIconSize, shipmentIconSize],
+        iconAnchor: [shipmentIconAnchor, shipmentIconAnchor],
       })
 
       const statusLabel =
@@ -178,8 +124,10 @@ export default function RoutesMap({ shipments, origin, selectedShipment }: Route
               ? 'Pengambilan'
               : 'Pending'
 
-      const marker = L.marker([shipment.recipient_lat, shipment.recipient_lng], { icon }).addTo(map)
-        .bindPopup(`
+      const marker = L.marker([shipment.recipient_lat, shipment.recipient_lng], { icon })
+        .addTo(map)
+        .bindPopup(
+          `
           <div style="min-width:200px">
             <b>${shipment.recipient_name}</b><br/>
             ${shipment.recipient_address}<br/>
@@ -188,7 +136,11 @@ export default function RoutesMap({ shipments, origin, selectedShipment }: Route
             <small><b>Berat:</b> ${shipment.weight_kg} kg</small><br/>
             <small><b>Tracking:</b> ${shipment.tracking_code}</small>
           </div>
-        `)
+        `
+        )
+        .on('click', () => {
+          onShipmentSelect?.(shipment)
+        })
 
       markersRef.current.set(shipment.id, marker)
     })
@@ -199,7 +151,7 @@ export default function RoutesMap({ shipments, origin, selectedShipment }: Route
       shipments.forEach((s) => bounds.extend([s.recipient_lat, s.recipient_lng]))
       map.fitBounds(bounds, { padding: [60, 60] })
     }
-  }, [shipments, origin])
+  }, [shipments, origin, isMobile])
 
   // ── Gambar rute utama via OSRM (origin → semua shipment secara urutan) ──────
   useEffect(() => {
@@ -212,71 +164,128 @@ export default function RoutesMap({ shipments, origin, selectedShipment }: Route
       mainPolylineRef.current = null
     }
 
-    const waypoints = [
-      { lat: origin.lat, lng: origin.lng },
-      ...shipments.map((s) => ({ lat: s.recipient_lat, lng: s.recipient_lng })),
-    ]
-
     setIsFetchingRoute(true)
 
-    fetchRoadRoute(waypoints).then((result) => {
-      setIsFetchingRoute(false)
-      if (!mapRef.current) return
+    // Format data ke dalam URL query parameters
+    const originParam = `${origin.lng},${origin.lat}`
+    const destParam = shipments
+      .map((s) => `${s.recipient_lng},${s.recipient_lat}`) // Hanya koordinat
+      .join('|')
+    const prioritiesParam = shipments
+      .map((s) => s.priority) // Dipisah
+      .join('|')
 
-      const coords =
-        result?.coords ??
-        // Fallback: garis lurus jika OSRM gagal
-        waypoints.map((w): L.LatLngTuple => [w.lat, w.lng])
+    fetch(
+      `/api/routes?origin=${originParam}&destinations=${destParam}&priorities=${prioritiesParam}`
+    )
+      .then((res) => res.json())
+      .then((result) => {
+        setIsFetchingRoute(false)
+        if (!mapRef.current) return
 
-      mainPolylineRef.current = L.polyline(coords, {
-        color: '#94a3b8',
-        weight: 3,
-        opacity: 0.55,
-        dashArray: '8 6',
-      }).addTo(mapRef.current)
-    })
+        if (result.success && result.data) {
+          // 2. Kirim data jarak dan durasi ke parent (page.tsx)
+          if (onRouteCalculated) {
+            // Dibulatkan untuk durasi menit
+            onRouteCalculated(result.data.distance || 0, Math.round(result.data.duration || 0))
+          }
+
+          // 3. Kirim data urutan paket untuk mengurutkan Sidebar
+          if (onRouteOptimized && result.data.orderedIndices) {
+            // Index dari ORS dihitung dari 1, jadi kita kurangi 1 untuk mencocokkan dengan array
+            const orderedIds = result.data.orderedIndices.map(
+              (idx: number) => shipments[idx - 1].id
+            )
+            onRouteOptimized(orderedIds)
+          }
+        }
+
+        const coords =
+          result.success && result.data?.coords
+            ? result.data.coords
+            : [
+                [origin.lat, origin.lng],
+                ...shipments.map((s) => [s.recipient_lat, s.recipient_lng]),
+              ]
+
+        mainPolylineRef.current = L.polyline(coords, {
+          color: '#3b82f6',
+          weight: 3,
+          opacity: 0.75,
+          dashArray: '8 6',
+        }).addTo(mapRef.current)
+      })
+      .catch((err) => {
+        console.error('Fetch route error:', err)
+        setIsFetchingRoute(false)
+      })
   }, [shipments, origin])
 
   // ── Highlight rute ke shipment yang dipilih ──────────────────────────────────
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !selectedShipment || shipments.length === 0) return
 
-    // Hapus highlight lama
-    if (selectedPolylineRef.current) {
-      map.removeLayer(selectedPolylineRef.current)
-      selectedPolylineRef.current = null
-    }
+    const currentIndex = shipments.findIndex((s) => s.id === selectedShipment.id)
 
-    if (!selectedShipment) return
+    // Tentukan titik mulai (Jika index 0, dari asal driver. Jika > 0, dari lokasi paket sebelumnya)
+    const startPoint =
+      currentIndex > 0
+        ? {
+            lat: shipments[currentIndex - 1].recipient_lat,
+            lng: shipments[currentIndex - 1].recipient_lng,
+          }
+        : {
+            lat: origin.lat,
+            lng: origin.lng,
+          }
 
-    const waypoints = [
-      { lat: origin.lat, lng: origin.lng },
-      { lat: selectedShipment.recipient_lat, lng: selectedShipment.recipient_lng },
-    ]
+    const controller = new AbortController()
 
-    fetchRoadRoute(waypoints).then((result) => {
-      if (!mapRef.current) return
+    const originParam = `${startPoint.lng},${startPoint.lat}`
+    const destParam = `${selectedShipment.recipient_lng},${selectedShipment.recipient_lat}`
+    const priorityParam = selectedShipment.priority
 
-      const coords = result?.coords ?? waypoints.map((w): L.LatLngTuple => [w.lat, w.lng])
-
-      selectedPolylineRef.current = L.polyline(coords, {
-        color: '#f97316',
-        weight: 5,
-        opacity: 0.85,
-      }).addTo(mapRef.current)
-
-      // Buka popup marker yang dipilih
-      const marker = markersRef.current.get(selectedShipment.id)
-      if (marker) {
-        marker.openPopup()
-
-        // Fit bounds ke rute yang dipilih (origin + tujuan)
-        const bounds = L.latLngBounds(coords)
-        mapRef.current.fitBounds(bounds, { padding: [80, 80], maxZoom: 14 })
+    fetch(
+      `/api/routes?origin=${originParam}&destinations=${destParam}&priorities=${priorityParam}`,
+      {
+        signal: controller.signal,
       }
-    })
-  }, [selectedShipment, origin])
+    )
+      .then((res) => res.json())
+      .then((result) => {
+        if (!mapRef.current) return
+
+        // Hapus garis lama
+        if (selectedPolylineRef.current) {
+          mapRef.current.removeLayer(selectedPolylineRef.current)
+          selectedPolylineRef.current = null
+        }
+
+        if (result.success && result.data?.coords) {
+          selectedPolylineRef.current = L.polyline(result.data.coords, {
+            color: '#3b82f6',
+            weight: 10,
+            opacity: 1,
+          }).addTo(mapRef.current)
+        }
+      })
+      .catch((err) => {
+        // Abaikan error di console jika request sengaja kita batalkan
+        if (err.name !== 'AbortError') {
+          console.error('Fetch segment route error:', err)
+        }
+      })
+
+    // 5. CLEANUP: Bersihkan referensi garis dan batalkan fetch jika user berpindah paket / unmount
+    return () => {
+      controller.abort()
+      if (selectedPolylineRef.current && mapRef.current) {
+        mapRef.current.removeLayer(selectedPolylineRef.current)
+        selectedPolylineRef.current = null
+      }
+    }
+  }, [selectedShipment, shipments, origin])
 
   return (
     <>
