@@ -19,6 +19,7 @@ import {
   X,
   Bell,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react'
 import { Route } from 'next'
 // import { DUMMY_USERS, type DummyUser } from '@/mocks'
@@ -39,6 +40,7 @@ interface CurrentUser {
 // ─── Data navigasi ────────────────────────────────────────────────────────────
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/overview', icon: <LayoutDashboard size={18} /> },
+  { label: 'Data Analyst', href: '/chat', icon: <Sparkles size={18} /> },
   { label: 'Fleet', href: '/fleet', icon: <Truck size={18} /> },
   { label: 'Personnel', href: '/drivers', icon: <Users size={18} /> },
   { label: 'Logistics', href: '/shipments', icon: <Package size={18} /> },
@@ -46,6 +48,7 @@ const navItems: NavItem[] = [
 ]
 const NavItemsDrivers: NavItem[] = [
   { label: 'Dashboard', href: '/overview', icon: <LayoutDashboard size={18} /> },
+  { label: 'Data Analyst', href: '/chat', icon: <Sparkles size={18} /> },
   { label: 'Packages', href: '/packages', icon: <Package size={18} /> },
   { label: 'Vehicles', href: '/vehicles', icon: <Truck size={18} /> },
   { label: 'Maps', href: '/maps', icon: <MapPin size={18} /> },
