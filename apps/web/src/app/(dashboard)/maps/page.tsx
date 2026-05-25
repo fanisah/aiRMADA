@@ -3,89 +3,15 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { Clock, Gauge, Package, AlertCircle, Zap, RefreshCw } from 'lucide-react'
-import { Shipment, ShipmentPriority } from '@/types'
-
-// Mock shipment data with coordinates
-const mockShipments: Shipment[] = [
-  {
-    id: '1',
-    tracking_code: 'SHIP-001',
-    driver_id: 'driver-1',
-    status: 'in_transit',
-    sender_name: 'Gudang Yogyakarta',
-    sender_address: 'Jl. Ringroad Utara, Sleman',
-    recipient_name: 'RS PKU Muhammadiyah Yogyakarta',
-    recipient_address: 'Jl. KH. Ahmad Dahlan No. 20, Yogyakarta',
-    recipient_lat: -7.8013,
-    recipient_lng: 110.3647,
-    weight_kg: 120,
-    volume_m3: 2.0,
-    priority: 'same_day',
-    estimated_delivery: '2026-05-23 14:00',
-    created_at: '2026-05-23T08:00:00Z',
-    updated_at: '2026-05-23T10:00:00Z',
-  },
-  {
-    id: '2',
-    tracking_code: 'SHIP-002',
-    driver_id: 'driver-1',
-    status: 'assigned',
-    sender_name: 'Gudang Yogyakarta',
-    sender_address: 'Jl. Ringroad Utara, Sleman',
-    recipient_name: 'Fakultas Teknik UGM',
-    recipient_address: 'Jl. Grafika No. 2, Sleman',
-    recipient_lat: -7.76654,
-    recipient_lng: 110.37479,
-    weight_kg: 65,
-    volume_m3: 1.0,
-    priority: 'express',
-    estimated_delivery: '2026-05-23 15:30',
-    created_at: '2026-05-23T08:15:00Z',
-    updated_at: '2026-05-23T09:30:00Z',
-  },
-  {
-    id: '3',
-    tracking_code: 'SHIP-003',
-    driver_id: 'driver-1',
-    status: 'pending',
-    sender_name: 'Gudang Yogyakarta',
-    sender_address: 'Jl. Ringroad Utara, Sleman',
-    recipient_name: 'Mirota Kampus',
-    recipient_address: 'Jl. C. Simanjuntak No. 70, Yogyakarta',
-    recipient_lat: -7.7739,
-    recipient_lng: 110.3838,
-    weight_kg: 200,
-    volume_m3: 3.2,
-    priority: 'regular',
-    estimated_delivery: '2026-05-23 17:00',
-    created_at: '2026-05-23T07:00:00Z',
-    updated_at: '2026-05-23T08:45:00Z',
-  },
-  {
-    id: '4',
-    tracking_code: 'SHIP-004',
-    driver_id: 'driver-1',
-    status: 'pickup',
-    sender_name: 'Gudang Yogyakarta',
-    sender_address: 'Jl. Ringroad Utara, Sleman',
-    recipient_name: 'RSUP Dr. Sardjito',
-    recipient_address: 'Jl. Kesehatan No. 1, Sleman',
-    recipient_lat: -7.7681,
-    recipient_lng: 110.3711,
-    weight_kg: 45,
-    volume_m3: 0.7,
-    priority: 'same_day',
-    estimated_delivery: '2026-05-23 13:30',
-    created_at: '2026-05-23T08:30:00Z',
-    updated_at: '2026-05-23T10:15:00Z',
-  },
-]
+import { Shipment, ShipmentPriority, Location } from '@/types'
+import { mockShipments } from '@/mocks'
+import { mockWarehouses } from '@/mocks'
 
 // Driver origin (warehouse/starting point)
-const FALLBACK_ORIGIN = {
-  lat: -7.7714,
-  lng: 110.3781,
-  id: 'gudang-yogyakarta',
+const FALLBACK_ORIGIN: Location = {
+  lat: mockWarehouses[0].lat,
+  lng: mockWarehouses[0].long,
+  id: mockWarehouses[0].name,
 }
 
 // Dynamically import map component
