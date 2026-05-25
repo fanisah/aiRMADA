@@ -9,13 +9,13 @@ import type { ShipmentStatus } from '@airmada/types'
 type Props = { status: ShipmentStatus }
 
 const COLOR: Record<ShipmentStatus, string> = {
-  pending: 'bg-gray-100 text-gray-600',
-  assigned: 'bg-yellow-100 text-yellow-700',
-  pickup: 'bg-blue-100 text-blue-700',
-  in_transit: 'bg-indigo-100 text-indigo-700',
-  delivered: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
-  returned: 'bg-purple-100 text-purple-700',
+  PENDING: 'bg-gray-100 text-gray-600',
+  ASSIGNED: 'bg-yellow-100 text-yellow-700',
+  PICKED_UP: 'bg-blue-100 text-blue-700',
+  IN_TRANSIT: 'bg-indigo-100 text-indigo-700',
+  DELIVERED: 'bg-green-100 text-green-700',
+  FAILED: 'bg-red-100 text-red-700',
+  RETURNED: 'bg-purple-100 text-purple-700',
 }
 
 export function ShipmentStatusBadge({ status }: Props) {
