@@ -1,7 +1,7 @@
 'use client'
 
 import { Route } from 'next'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -13,7 +13,7 @@ import { EmailConfirmationModal } from '@/components/auth/EmailConfirmationModal
  * @location apps/web/src/app/(auth)/register/page.tsx
  * Implementasi form register dengan Supabase Auth dan email confirmation
  */
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
@@ -348,5 +348,14 @@ export default function RegisterPage() {
         }}
       />
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    // Fallback UI (kosong juga boleh, atau spinner sederhana)
+    <Suspense fallback={<div>Loading form...</div>}>
+      <RegisterContent />
+    </Suspense>
   )
 }
