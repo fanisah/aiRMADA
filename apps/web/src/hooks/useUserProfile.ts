@@ -1,17 +1,5 @@
 import { useState, useEffect } from 'react'
-
-export interface UserSession {
-  user: {
-    id: string
-    full_name: string
-    short_name: string
-    role: string
-    cell_phone: string
-    avatar_url?: string
-  }
-  email: string
-  loginTime: string
-}
+import type { UserSession } from '@airmada/types'
 
 export interface UseUserProfileReturn {
   user: UserSession | null

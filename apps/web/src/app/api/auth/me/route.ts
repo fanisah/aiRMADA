@@ -5,19 +5,7 @@
  * Handles fetching and updating current user profile
  */
 import { NextResponse, NextRequest } from 'next/server'
-
-interface UserProfile {
-  user: {
-    id: string
-    full_name: string
-    short_name: string
-    role: string
-    cell_phone: string
-    avatar_url?: string
-  }
-  email: string
-  loginTime: string
-}
+import type { UserSession } from '@airmada/types'
 
 interface UpdateUserPayload {
   full_name?: string
@@ -33,7 +21,7 @@ interface UpdateUserPayload {
  */
 export async function GET(req: NextRequest) {
   try {
-    let userSession: UserProfile | null = null
+    let userSession: UserSession | null = null
 
     // Try to get session from cookie first
     const sessionCookie = req.cookies.get('user_session')
@@ -85,7 +73,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Parse existing session
-    let userSession: UserProfile
+    let userSession: UserSession
     try {
       userSession = JSON.parse(sessionCookie.value)
     } catch (parseError) {
@@ -105,7 +93,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Create updated session
-    const updatedSession: UserProfile = {
+    const updatedSession: UserSession = {
       ...userSession,
       user: updatedUser,
     }
