@@ -13,25 +13,29 @@ import { useUserProfile } from '@/hooks/useUserProfile'
  */
 
 const statusConfig: Record<ShipmentStatus, { color: string; label: string; badge: string }> = {
-  pending: { color: 'text-gray-700', label: 'Pending', badge: 'bg-gray-100 text-gray-800' },
-  assigned: { color: 'text-blue-700', label: 'Assigned', badge: 'bg-blue-100 text-blue-800' },
-  pickup: { color: 'text-yellow-700', label: 'Pickup', badge: 'bg-yellow-100 text-yellow-800' },
-  in_transit: {
+  PENDING: { color: 'text-gray-700', label: 'Pending', badge: 'bg-gray-100 text-gray-800' },
+  ASSIGNED: { color: 'text-blue-700', label: 'Assigned', badge: 'bg-blue-100 text-blue-800' },
+  PICKED_UP: {
+    color: 'text-yellow-700',
+    label: 'Picked Up',
+    badge: 'bg-yellow-100 text-yellow-800',
+  },
+  IN_TRANSIT: {
     color: 'text-orange-700',
     label: 'In Transit',
     badge: 'bg-orange-100 text-orange-800',
   },
-  delivered: { color: 'text-green-700', label: 'Delivered', badge: 'bg-green-100 text-green-800' },
-  failed: { color: 'text-red-700', label: 'Failed', badge: 'bg-red-100 text-red-800' },
-  returned: { color: 'text-purple-700', label: 'Returned', badge: 'bg-purple-100 text-purple-800' },
+  DELIVERED: { color: 'text-green-700', label: 'Delivered', badge: 'bg-green-100 text-green-800' },
+  FAILED: { color: 'text-red-700', label: 'Failed', badge: 'bg-red-100 text-red-800' },
+  RETURNED: { color: 'text-purple-700', label: 'Returned', badge: 'bg-purple-100 text-purple-800' },
 }
 
 const priorityConfig: Record<ShipmentPriority, { color: string; label: string }> = {
-  regular: { color: 'text-slate-500', label: 'Regular' },
-  express: { color: 'text-orange-600', label: 'Express' },
-  same_day: { color: 'text-red-600', label: 'Same Day' },
-  cargo: { color: 'text-indigo-600', label: 'Cargo' },
-  economy: { color: 'text-gray-600', label: 'Economy' },
+  REGULAR: { color: 'text-slate-500', label: 'Regular' },
+  EXPRESS: { color: 'text-orange-600', label: 'Express' },
+  SAME_DAY: { color: 'text-red-600', label: 'Same Day' },
+  CARGO: { color: 'text-indigo-600', label: 'Cargo' },
+  ECONOMY: { color: 'text-gray-600', label: 'Economy' },
 }
 
 type FilterStatus = ShipmentStatus | 'all'
@@ -108,10 +112,10 @@ export default function PackagesPage() {
 
   const stats = {
     total: packages.length,
-    delivered: packages.filter((p) => p.status === 'delivered').length,
-    in_transit: packages.filter((p) => p.status === 'in_transit').length,
-    pending: packages.filter((p) => p.status === 'pending').length,
-    failed: packages.filter((p) => p.status === 'failed').length,
+    delivered: packages.filter((p) => p.status === 'DELIVERED').length,
+    in_transit: packages.filter((p) => p.status === 'IN_TRANSIT').length,
+    pending: packages.filter((p) => p.status === 'PENDING').length,
+    failed: packages.filter((p) => p.status === 'FAILED').length,
   }
 
   if (isProfileLoading || loading) {
@@ -220,8 +224,8 @@ export default function PackagesPage() {
               const isOverdue =
                 pkg.estimated_delivery &&
                 new Date(pkg.estimated_delivery) < new Date() &&
-                pkg.status !== 'delivered' &&
-                pkg.status !== 'failed'
+                pkg.status !== 'DELIVERED' &&
+                pkg.status !== 'FAILED'
 
               return (
                 <tr

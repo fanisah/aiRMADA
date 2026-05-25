@@ -81,8 +81,8 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const statusIndex = statusSteps.indexOf(pkg.status as (typeof statusSteps)[number])
-  const isDelivered = pkg.status === 'delivered'
-  const isFailed = pkg.status === 'failed'
+  const isDelivered = pkg.status === 'DELIVERED'
+  const isFailed = pkg.status === 'FAILED'
 
   return (
     <div className="space-y-6 p-4 lg:p-6">
@@ -103,19 +103,19 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
           </div>
           <span
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
-              pkg.status === 'delivered'
+              pkg.status === 'DELIVERED'
                 ? 'bg-green-100 text-green-800'
-                : pkg.status === 'in_transit'
+                : pkg.status === 'IN_TRANSIT'
                   ? 'bg-orange-100 text-orange-800'
-                  : pkg.status === 'failed'
+                  : pkg.status === 'FAILED'
                     ? 'bg-red-100 text-red-800'
                     : 'bg-gray-100 text-gray-800'
             }`}
           >
-            {pkg.status === 'in_transit' && <Truck size={18} />}
-            {pkg.status === 'delivered' && <CheckCircle size={18} />}
-            {pkg.status === 'failed' && <AlertCircle size={18} />}
-            {pkg.status === 'pending' && <Package size={18} />}
+            {pkg.status === 'IN_TRANSIT' && <Truck size={18} />}
+            {pkg.status === 'DELIVERED' && <CheckCircle size={18} />}
+            {pkg.status === 'FAILED' && <AlertCircle size={18} />}
+            {pkg.status === 'PENDING' && <Package size={18} />}
             {pkg.status.charAt(0).toUpperCase() + pkg.status.slice(1).replace('_', ' ')}
           </span>
         </div>
