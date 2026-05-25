@@ -1,13 +1,13 @@
 export type ShipmentStatus =
-  | 'pending'
-  | 'assigned'
-  | 'pickup'
-  | 'in_transit'
-  | 'delivered'
-  | 'failed'
-  | 'returned'
+  | 'PENDING'
+  | 'ASSIGNED'
+  | 'PICKED_UP'
+  | 'IN_TRANSIT'
+  | 'DELIVERED'
+  | 'FAILED'
+  | 'RETURNED'
 
-export type ShipmentPriority = 'regular' | 'express' | 'same_day' | 'cargo' | 'economy'
+export type ShipmentPriority = 'REGULAR' | 'EXPRESS' | 'SAME_DAY' | 'CARGO' | 'ECONOMY'
 
 export interface Shipment {
   id: string
