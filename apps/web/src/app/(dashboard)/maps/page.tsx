@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { Clock, Gauge, Package, AlertCircle, Zap, RefreshCw } from 'lucide-react'
+import { Clock, Gauge, Package, AlertCircle, Zap, RefreshCw, Loader2 } from 'lucide-react'
 import { Shipment, ShipmentPriority, Location } from '@/types'
 import { mockShipments } from '@/mocks'
 import { mockWarehouses } from '@/mocks'
+import { useUserProfile } from '@/hooks/useUserProfile'
 
 // Driver origin (warehouse/starting point)
 const FALLBACK_ORIGIN: Location = {
-  lat: mockWarehouses[0].lat,
-  lng: mockWarehouses[0].long,
+  lat: Number(mockWarehouses[0].lat),
+  lng: Number(mockWarehouses[0].long),
   id: mockWarehouses[0].name,
 }
 
@@ -68,6 +69,8 @@ function getPriorityConfig(priority: ShipmentPriority) {
 }
 
 export default function MapsPage() {
+  const { user, loading: isUserLoading } = useUserProfile() // Ambil data profile user aktif
+
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [sortedShipments, setSortedShipments] = useState<Shipment[]>([])
   const [driverOrigin, setDriverOrigin] = useState(FALLBACK_ORIGIN)
@@ -75,59 +78,68 @@ export default function MapsPage() {
   const [locationError, setLocationError] = useState<string | null>(null)
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
   const [routeStats, setRouteStats] = useState({ distance: 0, duration: 0 })
-
-  /**
-   * Naikkan nilai ini untuk memaksa RoutesMap menghapus cache segmen dan
-   * melakukan fetch ulang ke ORS (refresh manual oleh pengguna).
-   */
   const [routeRefreshKey, setRouteRefreshKey] = useState(0)
 
+  // Efek untuk memfilter shipment & menentukan koordinat awal berdasarkan Warehouse user
   useEffect(() => {
-    setSortedShipments(mockShipments)
-    if (mockShipments.length > 0) {
-      setSelectedShipment(mockShipments[0])
-    }
-  }, [])
+    if (isUserLoading || !user?.user?.warehouse_id) return
 
-  // Get device location
+    const userWarehouseId = user.user.warehouse_id
+
+    // 1. Filter shipment yang memiliki warehouse_id yang sama dengan user
+    const filtered = mockShipments.filter(
+      (shipment) => String(shipment.warehouse_id) === String(userWarehouseId)
+    )
+    setSortedShipments(filtered)
+
+    if (filtered.length > 0) {
+      setSelectedShipment(filtered[0])
+    } else {
+      setSelectedShipment(null)
+    }
+
+    // 2. Set secara proaktif driverOrigin ke koordinat warehouse user tersebut
+    const userWarehouse = mockWarehouses.find((w) => String(w.id) === String(userWarehouseId))
+    if (userWarehouse) {
+      setDriverOrigin({
+        lat: Number(userWarehouse.lat),
+        lng: Number(userWarehouse.long),
+        id: userWarehouse.name,
+      })
+    }
+  }, [user, isUserLoading])
+
+  // Menangani penentuan lokasi driver dari data warehouse (menggantikan Geolocation API browser)
   const handleStartRoute = () => {
     setIsLoadingLocation(true)
     setLocationError(null)
 
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation tidak didukung oleh browser Anda')
+    if (!user?.user?.warehouse_id) {
+      setLocationError('Gagal mendeteksi data warehouse pada profil Anda')
       setIsLoadingLocation(false)
       return
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords
-        setDriverOrigin({
-          lat: latitude,
-          lng: longitude,
-          id: 'driver-location',
-        })
-        setRouteStarted(true)
-        setIsLoadingLocation(false)
-      },
-      (error) => {
-        let errorMsg = 'Gagal mendapatkan lokasi'
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMsg = 'Izin akses lokasi ditolak'
-            break
-          case error.POSITION_UNAVAILABLE:
-            errorMsg = 'Informasi lokasi tidak tersedia'
-            break
-          case error.TIMEOUT:
-            errorMsg = 'Permintaan lokasi timeout'
-            break
-        }
-        setLocationError(errorMsg)
-        setIsLoadingLocation(false)
-      }
+    // Cari koordinat warehouse dari mock data berdasarkan warehouse_id user
+    const userWarehouse = mockWarehouses.find(
+      (w) => String(w.id) === String(user.user.warehouse_id)
     )
+
+    if (!userWarehouse) {
+      setLocationError('Detail koordinat untuk warehouse Anda tidak ditemukan')
+      setIsLoadingLocation(false)
+      return
+    }
+
+    // Tetapkan lokasi asal driver langsung ke koordinat warehouse
+    setDriverOrigin({
+      lat: Number(userWarehouse.lat),
+      lng: Number(userWarehouse.long),
+      id: userWarehouse.name,
+    })
+
+    setRouteStarted(true)
+    setIsLoadingLocation(false)
   }
 
   const handleRouteOptimized = (orderedIds: string[]) => {
@@ -139,15 +151,23 @@ export default function MapsPage() {
     })
   }
 
-  /**
-   * Hapus cache dan minta RoutesMap fetch ulang seluruh rute dari ORS.
-   * Dipanggil saat pengguna menekan tombol "Optimasi Rute".
-   */
   const handleRefreshRoute = () => {
     setRouteRefreshKey((k) => k + 1)
   }
 
   const totalWeight = sortedShipments.reduce((sum, s) => sum + s.weight_kg, 0)
+
+  // Tampilkan layar loading jika data user/gudang belum siap dimuat
+  if (isUserLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+          <p className="text-sm font-medium text-gray-500">Menyelaraskan data gudang...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-full overflow-hidden bg-white">
@@ -213,7 +233,7 @@ export default function MapsPage() {
               className={`mt-1 h-3 w-3 shrink-0 rounded-full ${routeStarted ? 'animate-pulse bg-green-600' : 'bg-blue-600'}`}
             />
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900">Titik Awal</p>
+              <p className="text-sm font-semibold text-gray-900">Titik Awal (Gudang)</p>
               <p className="truncate text-xs text-gray-600">{driverOrigin.id}</p>
               {routeStarted && (
                 <p className="mt-1 text-xs text-green-600">

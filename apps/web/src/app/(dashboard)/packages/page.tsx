@@ -5,107 +5,12 @@ import { Route } from 'next'
 import Link from 'next/link'
 import { ChevronRight, Search, Filter, MapPin, Clock, AlertCircle } from 'lucide-react'
 import { Shipment, ShipmentStatus, ShipmentPriority } from '@/types'
+import { useUserProfile } from '@/hooks/useUserProfile'
 
 /**
  * Halaman list paket yang harus dikirim
  * @location apps/web/src/app/(dashboard)/packages/page.tsx
  */
-
-// Mock data packages
-const mockPackages: Shipment[] = [
-  {
-    id: '1',
-    tracking_code: 'TRK001',
-    driver_id: '1',
-    status: 'in_transit',
-    sender_name: 'Warehouse Jakarta',
-    sender_address: 'Jl. Industri No. 1, Jakarta',
-    recipient_name: 'PT. Mitra Abadi',
-    recipient_address: 'Jl. Gatot Subroto, Jakarta Selatan',
-    recipient_lat: -6.2197,
-    recipient_lng: 106.7997,
-    weight_kg: 15.5,
-    volume_m3: 0.08,
-    priority: 'express',
-    estimated_delivery: '2024-12-20T14:00:00Z',
-    created_at: '2024-12-20T09:00:00Z',
-    updated_at: '2024-12-20T12:30:00Z',
-  },
-  {
-    id: '2',
-    tracking_code: 'TRK002',
-    driver_id: '1',
-    status: 'in_transit',
-    sender_name: 'Warehouse Jakarta',
-    sender_address: 'Jl. Industri No. 1, Jakarta',
-    recipient_name: 'CV. Sukses Jaya',
-    recipient_address: 'Jl. Ampera, Jakarta Selatan',
-    recipient_lat: -6.2456,
-    recipient_lng: 106.8052,
-    weight_kg: 22.0,
-    volume_m3: 0.15,
-    priority: 'regular',
-    estimated_delivery: '2024-12-20T16:30:00Z',
-    created_at: '2024-12-20T09:30:00Z',
-    updated_at: '2024-12-20T12:45:00Z',
-  },
-  {
-    id: '3',
-    tracking_code: 'TRK003',
-    driver_id: '1',
-    status: 'pending',
-    sender_name: 'Warehouse Jakarta',
-    sender_address: 'Jl. Industri No. 1, Jakarta',
-    recipient_name: 'Toko ABC',
-    recipient_address: 'Jl. Dipati Ukur, Bandung',
-    recipient_lat: -6.8944,
-    recipient_lng: 107.6087,
-    weight_kg: 8.5,
-    volume_m3: 0.05,
-    priority: 'same_day',
-    estimated_delivery: '2024-12-20T18:00:00Z',
-    created_at: '2024-12-20T11:00:00Z',
-    updated_at: '2024-12-20T11:00:00Z',
-  },
-  {
-    id: '4',
-    tracking_code: 'TRK004',
-    driver_id: '1',
-    status: 'delivered',
-    sender_name: 'Warehouse Jakarta',
-    sender_address: 'Jl. Industri No. 1, Jakarta',
-    recipient_name: 'Klinik Sehat',
-    recipient_address: 'Jl. Sudirman, Jakarta Pusat',
-    recipient_lat: -6.2088,
-    recipient_lng: 106.8212,
-    weight_kg: 12.0,
-    volume_m3: 0.06,
-    priority: 'express',
-    estimated_delivery: '2024-12-19T15:00:00Z',
-    actual_delivery: '2024-12-19T14:45:00Z',
-    created_at: '2024-12-19T08:00:00Z',
-    updated_at: '2024-12-19T14:45:00Z',
-  },
-  {
-    id: '5',
-    tracking_code: 'TRK005',
-    driver_id: '1',
-    status: 'failed',
-    sender_name: 'Warehouse Jakarta',
-    sender_address: 'Jl. Industri No. 1, Jakarta',
-    recipient_name: 'Toko XYZ',
-    recipient_address: 'Jl. Ahmad Yani, Bekasi',
-    recipient_lat: -6.2349,
-    recipient_lng: 106.9899,
-    weight_kg: 18.0,
-    volume_m3: 0.1,
-    priority: 'regular',
-    estimated_delivery: '2024-12-19T13:00:00Z',
-    failure_reason: 'Recipient tidak ada di alamat',
-    created_at: '2024-12-19T08:30:00Z',
-    updated_at: '2024-12-19T13:30:00Z',
-  },
-]
 
 const statusConfig: Record<ShipmentStatus, { color: string; label: string; badge: string }> = {
   pending: { color: 'text-gray-700', label: 'Pending', badge: 'bg-gray-100 text-gray-800' },
@@ -132,24 +37,59 @@ const priorityConfig: Record<ShipmentPriority, { color: string; label: string }>
 type FilterStatus = ShipmentStatus | 'all'
 
 export default function PackagesPage() {
-  const [packages, _setPackages] = useState<Shipment[]>(mockPackages)
-  const [filteredPackages, setFilteredPackages] = useState<Shipment[]>(mockPackages)
+  const [packages, setPackages] = useState<Shipment[]>([])
+  const [filteredPackages, setFilteredPackages] = useState<Shipment[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [loading, setLoading] = useState(false)
 
+  const { user, loading: isProfileLoading } = useUserProfile()
+
   useEffect(() => {
-    // TODO: Fetch dari API: GET /api/drivers/{id}/shipments
     setLoading(true)
     const timer = setTimeout(() => setLoading(false), 500)
     return () => clearTimeout(timer)
   }, [])
 
+  useEffect(() => {
+    // JANGAN lakukan fetch jika profil masih loading atau ID user belum tersedia
+    if (isProfileLoading || !user?.user?.id) {
+      return
+    }
+
+    let isMounted = true
+
+    const fetchPackages = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/shipments/drivers/${user.user.id}`)
+        if (!response.ok) throw new Error('Failed to fetch packages')
+
+        const data = await response.json()
+        if (isMounted) {
+          setPackages(data)
+        }
+      } catch (error) {
+        console.error('Error fetching packages:', error)
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchPackages()
+
+    // Fungsi cleanup untuk mencegah balapan data (race condition)
+    return () => {
+      isMounted = false
+    }
+  }, [user?.user?.id, isProfileLoading])
+
   // Filter packages berdasarkan search dan status
   useEffect(() => {
     let result = packages
 
-    // Filter by search
     if (searchQuery) {
       result = result.filter(
         (pkg) =>
@@ -159,7 +99,6 @@ export default function PackagesPage() {
       )
     }
 
-    // Filter by status
     if (filterStatus !== 'all') {
       result = result.filter((pkg) => pkg.status === filterStatus)
     }
@@ -167,19 +106,15 @@ export default function PackagesPage() {
     setFilteredPackages(result)
   }, [searchQuery, filterStatus, packages])
 
-  const getStatusStats = () => {
-    return {
-      total: packages.length,
-      delivered: packages.filter((p) => p.status === 'delivered').length,
-      in_transit: packages.filter((p) => p.status === 'in_transit').length,
-      pending: packages.filter((p) => p.status === 'pending').length,
-      failed: packages.filter((p) => p.status === 'failed').length,
-    }
+  const stats = {
+    total: packages.length,
+    delivered: packages.filter((p) => p.status === 'delivered').length,
+    in_transit: packages.filter((p) => p.status === 'in_transit').length,
+    pending: packages.filter((p) => p.status === 'pending').length,
+    failed: packages.filter((p) => p.status === 'failed').length,
   }
 
-  const stats = getStatusStats()
-
-  if (loading) {
+  if (isProfileLoading || loading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="text-center">
