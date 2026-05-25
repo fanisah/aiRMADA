@@ -67,7 +67,7 @@ async function optimizeRouteWithMatrix(origin: Coordinate, destinations: Coordin
     // Langkah 1: Cari nilai prioritas tertinggi dari sisa titik yang belum dikunjungi
     for (let i = 1; i < points.length; i++) {
       if (!visited.has(i)) {
-        const pWeight = PRIORITY_WEIGHT[points[i].priority || 'regular'] || 99
+        const pWeight = PRIORITY_WEIGHT[points[i].priority || 'REGULAR'] || 99
         if (pWeight < currentHighestPriority) {
           currentHighestPriority = pWeight
         }
@@ -76,7 +76,7 @@ async function optimizeRouteWithMatrix(origin: Coordinate, destinations: Coordin
     // Langkah 2: Lakukan pencarian titik terdekat HANYA pada kelompok prioritas tertinggi
     for (let i = 1; i < points.length; i++) {
       if (!visited.has(i)) {
-        const pWeight = PRIORITY_WEIGHT[points[i].priority || 'regular'] || 99
+        const pWeight = PRIORITY_WEIGHT[points[i].priority || 'REGULAR'] || 99
         if (pWeight === currentHighestPriority) {
           const dist = distances[currentIndex][i]
           if (dist !== null && dist < minDistance) {
@@ -190,7 +190,7 @@ export async function GET(req: Request) {
         lng: Number(lng),
         lat: Number(lat),
         // Kembalikan nilai properti prioritas melalui array gabungan terpisah
-        priority: prioritiesArr[index] || 'regular',
+        priority: prioritiesArr[index] || 'REGULAR',
       }
     })
 

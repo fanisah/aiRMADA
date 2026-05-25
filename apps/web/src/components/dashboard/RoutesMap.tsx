@@ -138,11 +138,11 @@ export default function RoutesMap({
       })
 
       const statusLabel =
-        shipment.status === 'delivered'
+        shipment.status === 'DELIVERED'
           ? 'Terkirim'
-          : shipment.status === 'in_transit'
+          : shipment.status === 'IN_TRANSIT'
             ? 'Dalam Perjalanan'
-            : shipment.status === 'pickup'
+            : shipment.status === 'PICKED_UP'
               ? 'Pengambilan'
               : 'Pending'
 
