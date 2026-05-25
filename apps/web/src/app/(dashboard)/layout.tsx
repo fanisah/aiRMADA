@@ -20,6 +20,7 @@ import {
   Bell,
   ChevronRight,
   Sparkles,
+  ArrowRight,
 } from 'lucide-react'
 import { Route } from 'next'
 // import { DUMMY_USERS, type DummyUser } from '@/mocks'
@@ -52,6 +53,7 @@ const NavItemsDispatchers: NavItem[] = [
   { label: 'Fleet', href: '/dispatch/fleet', icon: <Truck size={18} /> },
   { label: 'Driver', href: '/dispatch/drivers', icon: <Users size={18} /> },
   { label: 'Shipments', href: '/dispatch/shipments', icon: <Package size={18} /> },
+  { label: 'Assign', href: '/dispatch/assign', icon: <ArrowRight size={18} /> },
   { label: 'Live Routes', href: '/routes', icon: <MapPin size={18} /> },
 ]
 
