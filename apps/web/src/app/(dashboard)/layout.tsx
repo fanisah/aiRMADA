@@ -43,12 +43,21 @@ const navItems: NavItem[] = [
   { label: 'Data Analyst', href: '/chat', icon: <Sparkles size={18} /> },
   { label: 'Fleet', href: '/fleet', icon: <Truck size={18} /> },
   { label: 'Personnel', href: '/drivers', icon: <Users size={18} /> },
-  { label: 'Logistics', href: '/shipments', icon: <Package size={18} /> },
+  { label: 'Shipments', href: '/shipments', icon: <Package size={18} /> },
   { label: 'Live Routes', href: '/routes', icon: <MapPin size={18} /> },
 ]
+
+const NavItemsDispatchers: NavItem[] = [
+  { label: 'Dashboard', href: '/overview', icon: <LayoutDashboard size={18} /> },
+  { label: 'Fleet', href: '/dispatch/fleet', icon: <Truck size={18} /> },
+  { label: 'Driver', href: '/dispatch/drivers', icon: <Users size={18} /> },
+  { label: 'Shipments', href: '/dispatch/shipments', icon: <Package size={18} /> },
+  { label: 'Live Routes', href: '/routes', icon: <MapPin size={18} /> },
+]
+
 const NavItemsDrivers: NavItem[] = [
   { label: 'Dashboard', href: '/overview', icon: <LayoutDashboard size={18} /> },
-  { label: 'Data Analyst', href: '/chat', icon: <Sparkles size={18} /> },
+  // { label: 'Data Analyst', href: '/chat', icon: <Sparkles size={18} /> },
   { label: 'Packages', href: '/packages', icon: <Package size={18} /> },
   { label: 'Vehicles', href: '/vehicles', icon: <Truck size={18} /> },
   { label: 'Maps', href: '/maps', icon: <MapPin size={18} /> },
@@ -84,8 +93,14 @@ function getCurrentUser(): CurrentUser {
 
 // ─── Get navigation items based on user role ──────────────────────────────────
 function getNavItemsByRole(role: string): NavItem[] {
+  if (role?.toUpperCase() === 'MANAGER') {
+    return navItems
+  }
   if (role?.toUpperCase() === 'DRIVER') {
     return NavItemsDrivers
+  }
+  if (role?.toUpperCase() === 'DISPATCHER') {
+    return NavItemsDispatchers
   }
   return navItems
 }
