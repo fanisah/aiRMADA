@@ -6,7 +6,7 @@
  */
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { DataAnalystChat } from './DataAnalystChat'
 

@@ -12,15 +12,20 @@ interface ChatMessage {
 }
 
 interface OpenRouterResponse {
-  id: string
-  choices: Array<{
+  id?: string
+  choices?: Array<{
     message: ChatMessage
     finish_reason: string
   }>
-  usage: {
+  usage?: {
     prompt_tokens: number
     completion_tokens: number
   }
+  error?: {
+    message: string
+    type?: string
+    code?: string
+  } | null
 }
 
 export const SYSTEM_PROMPT = `Kamu adalah "aiRMADA Data Analyst AI", seorang AI analyst ahli dalam industri logistik dan armada kendaraan.
@@ -63,13 +68,34 @@ Selalu:
 
 export async function chatWithAnalyst(
   messages: ChatMessage[],
-  model: string = 'mistralai/mistral-7b-instruct:free'
+  model: string = 'openrouter/free'
 ): Promise<string> {
   if (!OPENROUTER_API_KEY) {
     throw new Error('OPENROUTER_API_KEY is not configured')
   }
 
   try {
+    const requestBody = {
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT,
+        },
+        ...messages,
+      ],
+      temperature: 0.7,
+      max_tokens: 1500, // Reduced from 2000
+      top_p: 0.9,
+    }
+
+    console.log('Sending to OpenRouter:', {
+      url: `${OPENROUTER_BASE_URL}/chat/completions`,
+      model,
+      messageCount: messages.length,
+      totalContent: messages.reduce((sum, m) => sum + m.content.length, 0),
+    })
+
     const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -78,31 +104,41 @@ export async function chatWithAnalyst(
         'HTTP-Referer': 'https://airmada.app',
         'X-Title': 'aiRMADA Data Analyst',
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'system',
-            content: SYSTEM_PROMPT,
-          },
-          ...messages,
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-        top_p: 0.9,
-      }),
+      body: JSON.stringify(requestBody),
     })
 
     if (!response.ok) {
       const error = await response.json()
-      throw new Error(`OpenRouter API error: ${error.message || response.statusText}`)
+      console.error('OpenRouter API error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        error,
+      })
+      const errorMsg = error.error?.message || error.message || error.statusText || 'Unknown error'
+      throw new Error(`OpenRouter API error (${response.status}): ${errorMsg}`)
     }
 
     const data: OpenRouterResponse = await response.json()
+
+    // Log response for debugging
+    console.log('OpenRouter response:', JSON.stringify(data, null, 2))
+
+    // Check for error in response
+    if (data.error) {
+      throw new Error(`OpenRouter API error: ${data.error.message || 'Unknown error'}`)
+    }
+
+    // Validate response structure
+    if (!data.choices || data.choices.length === 0) {
+      console.error('Invalid response structure:', data)
+      throw new Error('OpenRouter returned empty choices array')
+    }
+
     const assistantMessage = data.choices[0]?.message?.content
 
     if (!assistantMessage) {
-      throw new Error('No response content from OpenRouter')
+      console.error('Missing message content in choice:', data.choices[0])
+      throw new Error('No response content from OpenRouter - message content is empty or missing')
     }
 
     return assistantMessage
@@ -117,6 +153,12 @@ export async function analyzeFleetData(
   fileName: string,
   query?: string
 ): Promise<string> {
+  // Limit file content to prevent request size issues (max 8000 characters)
+  const truncatedContent =
+    fileContent.length > 8000
+      ? fileContent.substring(0, 8000) + '\n... [content truncated for API limit]'
+      : fileContent
+
   const userMessage = query
     ? `Saya telah upload file "${fileName}" berisi data armada. ${query}`
     : `Saya telah upload file "${fileName}" berisi data armada. Mohon lakukan analisis menyeluruh terhadap data ini dan berikan insights, alert untuk issue kritis, serta rekomendasi untuk improvement.`
@@ -124,7 +166,7 @@ export async function analyzeFleetData(
   const messages: ChatMessage[] = [
     {
       role: 'user',
-      content: `File: ${fileName}\n\nData:\n${fileContent}\n\n${userMessage}`,
+      content: `File: ${fileName}\n\nData:\n${truncatedContent}\n\n${userMessage}`,
     },
   ]
 
@@ -133,10 +175,25 @@ export async function analyzeFleetData(
 
 export async function streamChatWithAnalyst(
   messages: ChatMessage[],
-  model: string = 'mistralai/mistral-7b-instruct:free'
+  model: string = 'openrouter/free'
 ) {
   if (!OPENROUTER_API_KEY) {
     throw new Error('OPENROUTER_API_KEY is not configured')
+  }
+
+  const requestBody = {
+    model,
+    messages: [
+      {
+        role: 'system',
+        content: SYSTEM_PROMPT,
+      },
+      ...messages,
+    ],
+    temperature: 0.7,
+    max_tokens: 1500,
+    top_p: 0.9,
+    stream: true,
   }
 
   const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
@@ -147,24 +204,18 @@ export async function streamChatWithAnalyst(
       'HTTP-Referer': 'https://airmada.app',
       'X-Title': 'aiRMADA Data Analyst',
     },
-    body: JSON.stringify({
-      model,
-      messages: [
-        {
-          role: 'system',
-          content: SYSTEM_PROMPT,
-        },
-        ...messages,
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-      top_p: 0.9,
-      stream: true,
-    }),
+    body: JSON.stringify(requestBody),
   })
 
   if (!response.ok) {
-    throw new Error(`OpenRouter API error: ${response.statusText}`)
+    const error = await response.json()
+    console.error('OpenRouter stream error response:', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    })
+    const errorMsg = error.error?.message || error.message || error.statusText || 'Unknown error'
+    throw new Error(`OpenRouter API error (${response.status}): ${errorMsg}`)
   }
 
   return response.body

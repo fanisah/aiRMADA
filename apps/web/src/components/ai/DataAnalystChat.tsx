@@ -8,6 +8,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Upload, Send, X, Loader } from 'lucide-react'
+import { ChatMessage } from './ChatMessage'
 
 interface Message {
   id: string
@@ -171,7 +172,7 @@ export function DataAnalystChat() {
   return (
     <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 text-white">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-linear-to-r from-orange-500 to-orange-600 px-6 py-4 text-white">
         <div className="flex items-center gap-3">
           <span className="text-xl">✨</span>
           <h1 className="text-lg font-semibold">aiRMADA Data Analyst</h1>
@@ -195,9 +196,19 @@ export function DataAnalystChat() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadState.isLoading}
-              className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
             >
-              {uploadState.isLoading ? 'Uploading...' : 'Select File Button'}
+              {uploadState.isLoading ? (
+                <>
+                  <Loader className="h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Upload
+                </>
+              )}
             </button>
           </div>
           <div className="border-b border-slate-200"></div>
@@ -221,26 +232,7 @@ export function DataAnalystChat() {
           ) : (
             <>
               {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs rounded-lg px-3 py-2 text-sm ${
-                      message.role === 'user'
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-white text-slate-800'
-                    }`}
-                  >
-                    {message.role === 'user' && (
-                      <p className="font-semibold text-orange-100">[User]:</p>
-                    )}
-                    {message.role === 'assistant' && (
-                      <p className="font-semibold text-orange-600">[AI]:</p>
-                    )}
-                    <p className="mt-1">{message.content}</p>
-                  </div>
-                </div>
+                <ChatMessage key={message.id} role={message.role} content={message.content} />
               ))}
 
               {isLoading && (
