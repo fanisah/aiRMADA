@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -11,7 +11,9 @@ import { createClient } from '@/lib/supabase/client'
  *
  * @location apps/web/src/app/(auth)/auth/callback/page.tsx
  */
-export default function AuthCallbackPage() {
+
+// 1. Pindahkan semua logika utama ke dalam sub-komponen
+function CallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const code = searchParams.get('code')
@@ -58,8 +60,9 @@ export default function AuthCallbackPage() {
     handleEmailConfirmation()
   }, [handleEmailConfirmation])
 
+  // UI saat sedang memverifikasi
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-100 to-slate-200">
       <div className="text-center">
         <div className="mb-4 inline-block">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600"></div>
@@ -68,5 +71,27 @@ export default function AuthCallbackPage() {
         <p className="mt-2 text-sm text-slate-600">Please wait while we redirect you.</p>
       </div>
     </div>
+  )
+}
+
+// 2. Bungkus komponen di atas dengan Suspense pada default export
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        // UI fallback yang sama persis agar transisi layarnya mulus
+        <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-100 to-slate-200">
+          <div className="text-center">
+            <div className="mb-4 inline-block">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600"></div>
+            </div>
+            <p className="text-lg font-semibold text-slate-700">Loading...</p>
+            <p className="mt-2 text-sm text-slate-600">Preparing confirmation page.</p>
+          </div>
+        </div>
+      }
+    >
+      <CallbackContent />
+    </Suspense>
   )
 }
