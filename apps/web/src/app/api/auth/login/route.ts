@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       let profile
       const { data: fetchedProfile, error: profileError } = await supabase
         .from('users')
-        .select('id, full_name, short_name, role, cell_phone')
+        .select('id, full_name, short_name, role, cell_phone, warehouse_id')
         .eq('id', authData.user.id)
         .single()
       profile = fetchedProfile
@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
         const fullName =
           authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || 'User'
         const shortName = fullName.split(' ')[0]
+        const warehouseId = authData.user.user_metadata?.warehouse_id || null
 
         const { data: newProfile, error: createError } = await supabase
           .from('users')
@@ -76,9 +77,10 @@ export async function POST(req: NextRequest) {
               short_name: shortName,
               role: 'DRIVER',
               cell_phone: authData.user.user_metadata?.cell_phone || null,
+              warehouse_id: warehouseId,
             },
           ])
-          .select('id, full_name, short_name, role, cell_phone')
+          .select('id, full_name, short_name, role, cell_phone, warehouse_id')
           .single()
 
         if (createError || !newProfile) {
@@ -100,6 +102,7 @@ export async function POST(req: NextRequest) {
         role: profile.role,
         cell_phone: profile.cell_phone,
         avatar_url: '/dummy/doctor.jpg',
+        warehouse_id: profile.warehouse_id,
       } as User
     } catch (supabaseError) {
       console.warn('Supabase auth failed, attempting dummy auth:', supabaseError)

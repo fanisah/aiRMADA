@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
             short_name: fullName.split(' ')[0],
             cell_phone: cellPhone || null,
             role: 'DRIVER', // Default role
+            warehouse_id: authData.user.user_metadata?.warehouse_id || null,
           },
         ])
         .select()
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
         role: profile.role,
         cell_phone: profile.cell_phone,
         avatar_url: '/dummy/doctor.jpg',
+        warehouse_id: profile.warehouse_id,
       }
 
       sessionData = {

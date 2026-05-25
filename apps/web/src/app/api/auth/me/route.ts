@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     if (sessionCookie) {
       try {
         userSession = JSON.parse(sessionCookie.value)
+        // console.log(`User: ${userSession?.user.full_name}, Warehouse ID: ${userSession?.user.warehouse_id}`)
       } catch (parseError) {
         console.error('Failed to parse session cookie:', parseError)
       }
