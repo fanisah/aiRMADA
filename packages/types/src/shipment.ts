@@ -30,6 +30,7 @@ export interface Shipment {
   notes?: string
   created_at: string
   updated_at: string
+  warehouse_id: string
 }
 
 export interface ShipmentStatusLog {

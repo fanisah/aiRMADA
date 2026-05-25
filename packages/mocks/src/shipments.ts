@@ -19,6 +19,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 14:00',
     created_at: '2026-05-25T08:00:00Z',
     updated_at: '2026-05-25T10:00:00Z',
+    warehouse_id: '1'
   },
   {
     id: '2',
@@ -37,6 +38,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 16:30',
     created_at: '2026-05-25T08:15:00Z',
     updated_at: '2026-05-25T09:30:00Z',
+    warehouse_id: '1'
   },
   {
     id: '3',
@@ -55,6 +57,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-26 12:00',
     created_at: '2026-05-25T07:00:00Z',
     updated_at: '2026-05-25T08:45:00Z',
+    warehouse_id: '1'
   },
   {
     id: '4',
@@ -73,6 +76,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 15:00',
     created_at: '2026-05-25T08:30:00Z',
     updated_at: '2026-05-25T10:15:00Z',
+    warehouse_id: '1'
   },
   {
     id: '5',
@@ -91,12 +95,13 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-27 17:00',
     created_at: '2026-05-25T09:00:00Z',
     updated_at: '2026-05-25T09:00:00Z',
+    warehouse_id: '1'
   },
   // WAREHOUSE 2: GAMPING (Yogyakarta Barat)
   {
     id: '6',
     tracking_code: 'SHIP-GMP-001',
-    driver_id: 'driver-2',
+    driver_id: '7ec8fde2-9256-4b0a-a97a-67a7bc9aa7b8',
     status: 'in_transit',
     sender_name: 'Warehouse Gamping',
     sender_address: 'Jl. Patukan, Gamping Tengah, Ambarketawang, Kec. Gamping, Sleman',
@@ -110,11 +115,12 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 14:30',
     created_at: '2026-05-25T07:30:00Z',
     updated_at: '2026-05-25T09:45:00Z',
+    warehouse_id: '2'
   },
   {
     id: '7',
     tracking_code: 'SHIP-GMP-002',
-    driver_id: 'driver-2',
+    driver_id: '7ec8fde2-9256-4b0a-a97a-67a7bc9aa7b8',
     status: 'assigned',
     sender_name: 'Warehouse Gamping',
     sender_address: 'Jl. Patukan, Gamping Tengah, Ambarketawang, Kec. Gamping, Sleman',
@@ -128,11 +134,12 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 16:00',
     created_at: '2026-05-25T08:00:00Z',
     updated_at: '2026-05-25T09:00:00Z',
+    warehouse_id: '2'
   },
   {
     id: '8',
     tracking_code: 'SHIP-GMP-003',
-    driver_id: 'driver-2',
+    driver_id: '7ec8fde2-9256-4b0a-a97a-67a7bc9aa7b8',
     status: 'pending',
     sender_name: 'Warehouse Gamping',
     sender_address: 'Jl. Patukan, Gamping Tengah, Ambarketawang, Kec. Gamping, Sleman',
@@ -146,11 +153,12 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 17:45',
     created_at: '2026-05-25T08:45:00Z',
     updated_at: '2026-05-25T08:45:00Z',
+    warehouse_id: '2'
   },
   {
     id: '9',
     tracking_code: 'SHIP-GMP-004',
-    driver_id: 'driver-2',
+    driver_id: '7ec8fde2-9256-4b0a-a97a-67a7bc9aa7b8',
     status: 'pickup',
     sender_name: 'Warehouse Gamping',
     sender_address: 'Jl. Patukan, Gamping Tengah, Ambarketawang, Kec. Gamping, Sleman',
@@ -164,11 +172,12 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 13:15',
     created_at: '2026-05-25T09:15:00Z',
     updated_at: '2026-05-25T10:00:00Z',
+    warehouse_id: '2'
   },
   {
     id: '10',
     tracking_code: 'SHIP-GMP-005',
-    driver_id: 'driver-2',
+    driver_id: '7ec8fde2-9256-4b0a-a97a-67a7bc9aa7b8',
     status: 'pending',
     sender_name: 'Warehouse Gamping',
     sender_address: 'Jl. Patukan, Gamping Tengah, Ambarketawang, Kec. Gamping, Sleman',
@@ -182,6 +191,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-27 14:00',
     created_at: '2026-05-25T07:20:00Z',
     updated_at: '2026-05-25T07:20:00Z',
+    warehouse_id: '2'
   },
   // WAREHOUSE 3: MLATI (Yogyakarta Utara)
   {
@@ -201,6 +211,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 15:30',
     created_at: '2026-05-25T08:10:00Z',
     updated_at: '2026-05-25T10:05:00Z',
+    warehouse_id: '3'
   },
   {
     id: '12',
@@ -219,6 +230,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 16:45',
     created_at: '2026-05-25T08:00:00Z',
     updated_at: '2026-05-25T09:15:00Z',
+    warehouse_id: '3'
   },
   {
     id: '13',
@@ -237,6 +249,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-26 10:00',
     created_at: '2026-05-25T09:00:00Z',
     updated_at: '2026-05-25T09:00:00Z',
+    warehouse_id: '3'
   },
   {
     id: '14',
@@ -255,6 +268,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 14:00',
     created_at: '2026-05-25T08:30:00Z',
     updated_at: '2026-05-25T09:50:00Z',
+    warehouse_id: '3'
   },
   {
     id: '15',
@@ -273,6 +287,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-27 11:00',
     created_at: '2026-05-25T07:45:00Z',
     updated_at: '2026-05-25T07:45:00Z',
+    warehouse_id: '3'
   },
   // WAREHOUSE 4: BERBAH (Yogyakarta Timur)
   {
@@ -292,6 +307,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 13:30',
     created_at: '2026-05-25T07:15:00Z',
     updated_at: '2026-05-25T09:30:00Z',
+    warehouse_id: '4'
   },
   {
     id: '17',
@@ -310,6 +326,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 16:00',
     created_at: '2026-05-25T08:00:00Z',
     updated_at: '2026-05-25T09:00:00Z',
+    warehouse_id: '4'
   },
   {
     id: '18',
@@ -328,6 +345,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-26 14:00',
     created_at: '2026-05-25T09:10:00Z',
     updated_at: '2026-05-25T09:10:00Z',
+    warehouse_id: '4'
   },
   {
     id: '19',
@@ -346,6 +364,7 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-25 15:15',
     created_at: '2026-05-25T08:30:00Z',
     updated_at: '2026-05-25T10:10:00Z',
+    warehouse_id: '4'
   },
   {
     id: '20',
@@ -364,5 +383,6 @@ export const mockShipments: Shipment[] = [
     estimated_delivery: '2026-05-27 13:00',
     created_at: '2026-05-25T07:50:00Z',
     updated_at: '2026-05-25T07:50:00Z',
+    warehouse_id: '4'
   },
 ]
