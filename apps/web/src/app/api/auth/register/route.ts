@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
             full_name: fullName,
             short_name: fullName.split(' ')[0],
             cell_phone: cellPhone || null,
-            role: 'DRIVER', // Default role
+            role: 'driver', // Lowercase to match database enum
             warehouse_id: authData.user.user_metadata?.warehouse_id || null,
           },
         ])

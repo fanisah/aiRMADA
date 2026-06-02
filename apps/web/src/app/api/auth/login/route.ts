@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
               id: authData.user.id,
               full_name: fullName,
               short_name: shortName,
-              role: 'DRIVER',
+              role: 'driver', // Lowercase to match database enum
               cell_phone: authData.user.user_metadata?.cell_phone || null,
               warehouse_id: warehouseId,
             },
